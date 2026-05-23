@@ -31,7 +31,6 @@
               <img v-else-if="getCoverMedia(p)" :src="hoveredId === p.id ? getHoverMedia(p) : getCoverMedia(p)" :alt="p.name" />
               <span v-else class="image-placeholder">{{ p.name?.charAt(0) }}</span>
               <span class="media-badge" v-if="getFirstVideo(p)"><el-icon :size="14"><VideoCameraFilled /></el-icon></span>
-              <span class="media-badge gif-badge" v-else-if="hasGif(p)">GIF</span>
               <div class="product-actions" v-if="hoveredId === p.id">
                 <el-button type="primary" size="small" round @click.stop="$router.push(`/product/${p.id}`)">查看详情</el-button>
               </div>
@@ -55,7 +54,6 @@
               <img v-else-if="getCoverMedia(p)" :src="getCoverMedia(p)" :alt="p.name" />
               <span v-else class="image-placeholder">{{ p.name?.charAt(0) }}</span>
               <span class="media-badge" v-if="getFirstVideo(p)"><el-icon :size="12"><VideoCameraFilled /></el-icon></span>
-              <span class="media-badge gif-badge" v-else-if="hasGif(p)">GIF</span>
             </div>
             <div class="list-info">
               <h4>{{ p.name }}</h4>
@@ -108,17 +106,9 @@ function parseVideos(product) {
   } catch { return [] }
 }
 
-function isVideo(url) { return /\.mp4$/i.test(url) }
-function isGif(url) { return /\.gif$/i.test(url) }
-
 function getFirstVideo(product) {
   const videos = parseVideos(product)
   return videos.length > 0 ? videos[0] : null
-}
-
-function hasGif(product) {
-  const imgs = parseImages(product)
-  return imgs.some(u => isGif(u))
 }
 
 function getCoverMedia(product) {
@@ -235,9 +225,6 @@ async function loadProducts() {
   font-size: 11px;
   font-weight: 600;
   z-index: 2;
-}
-.gif-badge {
-  background: rgba(0,103,107,0.8);
 }
 .image-placeholder {
   font-size: 56px;

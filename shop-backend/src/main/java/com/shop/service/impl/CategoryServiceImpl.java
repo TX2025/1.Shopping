@@ -26,6 +26,8 @@ public class CategoryServiceImpl implements CategoryService {
             node.put("parentId", c.getParentId());
             node.put("sortOrder", c.getSortOrder());
             node.put("icon", c.getIcon());
+            node.put("coverImage", c.getCoverImage());
+            node.put("videos", c.getVideos());
             node.put("children", new ArrayList<>());
             map.put(c.getId(), node);
         }
@@ -60,6 +62,8 @@ public class CategoryServiceImpl implements CategoryService {
         existing.setParentId(category.getParentId());
         existing.setSortOrder(category.getSortOrder());
         existing.setIcon(category.getIcon());
+        existing.setCoverImage(category.getCoverImage());
+        existing.setVideos(category.getVideos());
         return categoryRepository.save(existing);
     }
 

@@ -18,7 +18,7 @@ public class AdminPageConfigController {
     @GetMapping("/page-configs")
     public ApiResponse<Map<String, Object>> list() {
         var map = new java.util.LinkedHashMap<String, Object>();
-        for (String type : new String[]{"HOME", "PRODUCT_LIST", "PRODUCT_DETAIL", "CART", "PAYMENT", "THANK_YOU"}) {
+        for (String type : new String[]{"HOME", "PRODUCT_LIST", "PRODUCT_DETAIL", "CART", "PAYMENT", "THANK_YOU", "FOOTER"}) {
             map.put(type, pageConfigService.getConfig(type));
         }
         return ApiResponse.success(map);

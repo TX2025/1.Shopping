@@ -1,8 +1,8 @@
 package com.shop.controller.admin;
 
+import com.shop.common.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -47,13 +47,9 @@ public class FileUploadController {
     }
 
     @PostMapping("/upload")
-    public ResponseEntity<Map<String, Object>> upload(@RequestParam("file") MultipartFile file) {
-        Map<String, Object> result = new HashMap<>();
-
+    public ApiResponse<Map<String, Object>> upload(@RequestParam("file") MultipartFile file) {
         if (file.isEmpty()) {
-            result.put("success", false);
-            result.put("message", "文件为空");
-            return ResponseEntity.badRequest().body(result);
+            return ApiResponse.error("文件为空");
         }
 
         String originalFilename = file.getOriginalFilename();
@@ -63,9 +59,7 @@ public class FileUploadController {
         }
 
         if (!ALLOWED_EXTENSIONS.contains(ext)) {
-            result.put("success", false);
-            result.put("message", "不支持的文件格式: " + ext + "，仅支持 jpg/jpeg/png/gif/mp4");
-            return ResponseEntity.badRequest().body(result);
+            return ApiResponse.error("不支持的文件格式: " + ext + "，仅支持 jpg/jpeg/png/gif/mp4");
         }
 
         try {
@@ -76,29 +70,27 @@ public class FileUploadController {
             String url = "/uploads/" + newFilename;
             log.info("File uploaded: {} -> {}", originalFilename, url);
 
-            result.put("success", true);
-            result.put("url", url);
-            result.put("filename", newFilename);
-            result.put("originalName", originalFilename);
-            result.put("size", file.getSize());
-            return ResponseEntity.ok(result);
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("url", url);
+            data.put("filename", newFilename);
+            data.put("originalName", originalFilename);
+            data.put("size", file.getSize());
+            return ApiResponse.success(data);
         } catch (IOException e) {
             log.error("Upload failed", e);
-            result.put("success", false);
-            result.put("message", "上传失败: " + e.getMessage());
-            return ResponseEntity.internalServerError().body(result);
+            return ApiResponse.error("上传失败: " + e.getMessage());
         }
     }
 
     @GetMapping("/upload/list")
-    public ResponseEntity<List<Map<String, Object>>> listFiles() {
+    public ApiResponse<List<Map<String, Object>>> listFiles() {
         List<Map<String, Object>> files = new ArrayList<>();
         if (!Files.exists(uploadPath)) {
-            return ResponseEntity.ok(files);
+            return ApiResponse.success(files);
         }
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(uploadPath)) {
             for (Path p : stream) {
-                Map<String, Object> info = new HashMap<>();
+                Map<String, Object> info = new LinkedHashMap<>();
                 info.put("filename", p.getFileName().toString());
                 info.put("url", "/uploads/" + p.getFileName().toString());
                 info.put("size", Files.size(p));
@@ -107,6 +99,6 @@ public class FileUploadController {
         } catch (IOException e) {
             log.error("List files failed", e);
         }
-        return ResponseEntity.ok(files);
+        return ApiResponse.success(files);
     }
 }

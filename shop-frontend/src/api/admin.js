@@ -3,9 +3,7 @@ import request from '../utils/request'
 export function uploadFile(file) {
   const formData = new FormData()
   formData.append('file', file)
-  return request.post('/admin/upload', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  })
+  return request.post('/admin/upload', formData)
 }
 
 export function getAdminProducts(params) { return request.get('/admin/products', { params }) }
@@ -32,6 +30,8 @@ export function getPageConfigs() { return request.get('/admin/page-configs') }
 export function updatePageConfig(pageType, data) { return request.put(`/admin/page-configs/${pageType}`, data) }
 
 export function getPageConfigSchema(pageType) { return request.get(`/admin/page-configs/${pageType}/schema`) }
+
+export function getDashboardStats() { return request.get('/admin/dashboard') }
 
 export function getSiteConfig() { return request.get('/site-config') }
 export function getPageConfig(type) { return request.get(`/page-config/${type}`) }

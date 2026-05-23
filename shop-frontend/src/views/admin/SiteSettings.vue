@@ -25,18 +25,6 @@
           </el-form>
         </el-tab-pane>
 
-        <el-tab-pane label="首页轮播" name="hero">
-          <el-form label-width="120px">
-            <el-form-item label="启用">
-              <el-switch v-model="form.hero_enabled" active-value="true" inactive-value="false" />
-            </el-form-item>
-            <el-form-item label="轮播间隔(ms)"><el-input v-model="form.hero_interval" /></el-form-item>
-            <el-form-item label="幻灯片 (JSON)">
-              <el-input v-model="form.hero_slides" type="textarea" :rows="8" placeholder="JSON数组，每项: {image, link, title, sort}" />
-            </el-form-item>
-          </el-form>
-        </el-tab-pane>
-
         <el-tab-pane label="热门推荐" name="popular">
           <el-form label-width="120px">
             <el-form-item label="区块标题"><el-input v-model="form.popular_title" /></el-form-item>
@@ -59,22 +47,6 @@
             <el-form-item label="区块标题"><el-input v-model="form.trust_title" /></el-form-item>
             <el-form-item label="特性列表 (JSON)">
               <el-input v-model="form.trust_features" type="textarea" :rows="8" placeholder="JSON数组，每项: {icon, title, description, videoUrl}" />
-            </el-form-item>
-          </el-form>
-        </el-tab-pane>
-
-        <el-tab-pane label="Footer" name="footer">
-          <el-form label-width="140px">
-            <el-form-item label="关于文字"><el-input v-model="form.footer_about" type="textarea" :rows="2" /></el-form-item>
-            <el-form-item label="订阅引导语"><el-input v-model="form.footer_subscribe_text" /></el-form-item>
-            <el-form-item label="栏目列 (JSON)">
-              <el-input v-model="form.footer_columns" type="textarea" :rows="8" placeholder="JSON数组，每项: {title, links: [{label, url}]}" />
-            </el-form-item>
-            <el-form-item label="社交图标 (JSON)">
-              <el-input v-model="form.footer_social" type="textarea" :rows="4" placeholder="JSON数组，每项: {platform, url, icon}" />
-            </el-form-item>
-            <el-form-item label="支付图标 (JSON)">
-              <el-input v-model="form.footer_payment_icons" type="textarea" :rows="4" placeholder="JSON数组，每项: {name, icon}" />
             </el-form-item>
           </el-form>
         </el-tab-pane>
@@ -125,3 +97,7 @@ async function save() {
   } catch {} finally { saving.value = false }
 }
 </script>
+
+<style scoped>
+.site-settings h2 { margin: 0; }
+</style>

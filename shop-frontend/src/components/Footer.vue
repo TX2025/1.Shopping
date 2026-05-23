@@ -42,18 +42,20 @@
 import { ref, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useSiteConfig } from '../composables/useSiteConfig'
+import { usePageConfig } from '../composables/usePageConfig'
 
-const { config } = useSiteConfig()
+const { config: siteCfg } = useSiteConfig()
+const { config: footerCfg } = usePageConfig('FOOTER')
 const year = new Date().getFullYear()
 const subscribeEmail = ref('')
 
-const siteName = computed(() => config.value?.site_name || 'MyShop')
-const aboutText = computed(() => config.value?.footer_about || '')
-const subscribeText = computed(() => config.value?.footer_subscribe_text || '订阅我们的资讯')
+const siteName = computed(() => siteCfg.value?.site_name || 'MyShop')
+const aboutText = computed(() => footerCfg.value?.footer_about || '')
+const subscribeText = computed(() => footerCfg.value?.footer_subscribe_text || '订阅我们的资讯')
 
 const columns = computed(() => {
   try {
-    const raw = config.value?.footer_columns
+    const raw = footerCfg.value?.footer_columns
     if (!raw) return []
     return typeof raw === 'string' ? JSON.parse(raw) : raw
   } catch { return [] }
@@ -61,7 +63,7 @@ const columns = computed(() => {
 
 const socialList = computed(() => {
   try {
-    const raw = config.value?.footer_social
+    const raw = footerCfg.value?.footer_social
     if (!raw) return []
     return typeof raw === 'string' ? JSON.parse(raw) : raw
   } catch { return [] }
@@ -69,7 +71,7 @@ const socialList = computed(() => {
 
 const paymentList = computed(() => {
   try {
-    const raw = config.value?.footer_payment_icons
+    const raw = footerCfg.value?.footer_payment_icons
     if (!raw) return []
     return typeof raw === 'string' ? JSON.parse(raw) : raw
   } catch { return [] }

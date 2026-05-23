@@ -22,6 +22,8 @@ public class Constants {
     public static final String SITE_CONFIG_HERO_ENABLED = "hero_enabled";
     public static final String SITE_CONFIG_HERO_SLIDES = "hero_slides";
     public static final String SITE_CONFIG_HERO_INTERVAL = "hero_interval";
+    public static final String SITE_CONFIG_HERO_WIDTH = "hero_width";
+    public static final String SITE_CONFIG_HERO_HEIGHT = "hero_height";
     public static final String SITE_CONFIG_POPULAR_TITLE = "popular_title";
     public static final String SITE_CONFIG_POPULAR_COUNT = "popular_count";
     public static final String SITE_CONFIG_POPULAR_SORT = "popular_sort";
@@ -42,7 +44,9 @@ public class Constants {
         java.util.Map.entry(SITE_CONFIG_HEADER_PHONE, "400-123-4567"),
         java.util.Map.entry(SITE_CONFIG_HERO_ENABLED, "true"),
         java.util.Map.entry(SITE_CONFIG_HERO_SLIDES, "[{\"image\":\"https://placehold.co/1920x460/00676b/ffffff?text=新品上市\",\"link\":\"/products\",\"title\":\"新品上市\",\"sort\":1},{\"image\":\"https://placehold.co/1920x460/0a8f94/ffffff?text=限时特惠\",\"link\":\"/products?sort=sales\",\"title\":\"限时特惠\",\"sort\":2},{\"image\":\"https://placehold.co/1920x460/2c3e50/ffffff?text=品质保证\",\"link\":\"/products\",\"title\":\"品质保证\",\"sort\":3}]"),
-        java.util.Map.entry(SITE_CONFIG_HERO_INTERVAL, "4000"),
+        java.util.Map.entry(SITE_CONFIG_HERO_INTERVAL, "5000"),
+        java.util.Map.entry(SITE_CONFIG_HERO_WIDTH, "100%"),
+        java.util.Map.entry(SITE_CONFIG_HERO_HEIGHT, "500"),
         java.util.Map.entry(SITE_CONFIG_POPULAR_TITLE, "热门推荐"),
         java.util.Map.entry(SITE_CONFIG_POPULAR_COUNT, "8"),
         java.util.Map.entry(SITE_CONFIG_POPULAR_SORT, "sales"),
@@ -58,9 +62,10 @@ public class Constants {
     );
 
     // ========== Page Config Defaults ==========
-    public static final String PAGE_CONFIG_HOME_DEFAULT = "{\"hero_enabled\":true,\"showcase_enabled\":true,\"showcase_categories\":[],\"popular_enabled\":true,\"trust_enabled\":true,\"banners\":[],\"sections\":[{\"type\":\"category_showcase\",\"title\":\"热门分类\",\"categoryIds\":[]},{\"type\":\"product_grid\",\"title\":\"推荐商品\",\"displayCount\":8,\"sortBy\":\"sales\"}]}";
+    public static final String PAGE_CONFIG_HOME_DEFAULT = "{\"hero_enabled\":true,\"hero_slides\":[{\"image\":\"https://placehold.co/1920x500/00676b/ffffff?text=新品上市\",\"link\":\"/products\",\"title\":\"新品上市\",\"sort\":1},{\"image\":\"https://placehold.co/1920x500/0a8f94/ffffff?text=限时特惠\",\"link\":\"/products?sort=sales\",\"title\":\"限时特惠\",\"sort\":2},{\"image\":\"https://placehold.co/1920x500/2c3e50/ffffff?text=品质保证\",\"link\":\"/products\",\"title\":\"品质保证\",\"sort\":3}],\"hero_interval\":5000,\"hero_width\":\"100%\",\"hero_height\":500,\"showcase_enabled\":true,\"showcase_categories\":[],\"popular_enabled\":true,\"popular_products\":[],\"trust_enabled\":true}";
+    public static final String PAGE_CONFIG_FOOTER_DEFAULT = "{\"footer_about\":\"MyShop 致力于为您提供优质的购物体验，汇聚全球好物，让生活更美好。\",\"footer_columns\":[{\"title\":\"购物指南\",\"links\":[{\"label\":\"如何下单\",\"url\":\"#\"},{\"label\":\"支付方式\",\"url\":\"#\"},{\"label\":\"配送说明\",\"url\":\"#\"}]},{\"title\":\"售后服务\",\"links\":[{\"label\":\"退换货政策\",\"url\":\"#\"},{\"label\":\"退款流程\",\"url\":\"#\"},{\"label\":\"投诉建议\",\"url\":\"#\"}]},{\"title\":\"关于我们\",\"links\":[{\"label\":\"公司介绍\",\"url\":\"#\"},{\"label\":\"联系我们\",\"url\":\"#\"},{\"label\":\"加入我们\",\"url\":\"#\"}]},{\"title\":\"关注我们\",\"links\":[{\"label\":\"微博\",\"url\":\"#\"},{\"label\":\"微信公众号\",\"url\":\"#\"},{\"label\":\"小红书\",\"url\":\"#\"}]}],\"footer_subscribe_text\":\"订阅我们的资讯，获取最新优惠信息\",\"footer_social\":[{\"platform\":\"微信\",\"url\":\"#\",\"icon\":\"ChatDotSquare\"},{\"platform\":\"微博\",\"url\":\"#\",\"icon\":\"Share\"}],\"footer_payment_icons\":[{\"name\":\"微信支付\",\"icon\":\"Wallet\"},{\"name\":\"支付宝\",\"icon\":\"Money\"},{\"name\":\"银联\",\"icon\":\"CreditCard\"}]}";
     public static final String PAGE_CONFIG_PRODUCT_LIST_DEFAULT = "{\"displayMode\":\"grid\",\"pageSize\":20,\"showSidebar\":true,\"showFilters\":[\"category\",\"price\",\"keyword\"],\"defaultSort\":\"newest\",\"sidebarPosition\":\"left\",\"showSalesCount\":true,\"showOriginalPrice\":true}";
-    public static final String PAGE_CONFIG_PRODUCT_DETAIL_DEFAULT = "{\"showBreadcrumb\":true,\"showRelatedProducts\":true,\"relatedCount\":4,\"imageDisplayMode\":\"thumbnail\",\"showSalesCount\":true,\"showShareButtons\":true}";
+    public static final String PAGE_CONFIG_PRODUCT_DETAIL_DEFAULT = "{\"showBreadcrumb\":true,\"showRelatedProducts\":true,\"relatedCount\":4,\"imageDisplayMode\":\"thumbnail\",\"showSalesCount\":true,\"showShareButtons\":true,\"imageSwitchInterval\":5}";
     public static final String PAGE_CONFIG_CART_DEFAULT = "{\"showRelatedProducts\":true,\"promotionText\":\"满99元免运费\",\"showQuantityDiscount\":false,\"showCouponInput\":true,\"showShippingEstimate\":false,\"relatedProductsEnabled\":true}";
     public static final String PAGE_CONFIG_PAYMENT_DEFAULT = "{\"paymentMethods\":[\"alipay\",\"wechat\"],\"instructionText\":\"请在15分钟内完成支付\",\"showOrderSummary\":true}";
     public static final String PAGE_CONFIG_THANK_YOU_DEFAULT = "{\"message\":\"感谢您的购买！\",\"subMessage\":\"我们会尽快为您发货\",\"buttonText\":\"继续购物\",\"buttonLink\":\"/products\",\"autoRedirectSeconds\":10}";

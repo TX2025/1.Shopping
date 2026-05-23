@@ -1,14 +1,18 @@
 <template>
   <div class="home-page">
-    <HeroBanner v-if="pc.hero_enabled !== false && config?.hero_enabled !== 'false'" />
+    <HeroBanner v-if="pc.hero_enabled !== false" />
 
     <div class="container" v-if="pc.showcase_enabled !== false && showcaseCats.length">
       <h2 class="section-title">{{ pc.showcase_title || '热门分类' }}</h2>
       <div class="showcase-grid">
         <div class="showcase-card" v-for="cat in showcaseCats" :key="cat.id"
-          @click="$router.push(`/products?categoryId=${cat.id}`)">
-          <div class="showcase-icon">
-            <el-icon :size="36"><FolderOpened /></el-icon>
+          @click="$router.push(`/products?categoryId=${cat.id}`)"
+          @mouseenter="showcaseHoverId = cat.id" @mouseleave="showcaseHoverId = null">
+          <div class="showcase-media">
+            <video v-if="catFirstVideo(cat)" :src="catFirstVideo(cat)" muted loop playsinline
+              :class="{ 'showcase-video-playing': showcaseHoverId === cat.id }" />
+            <img v-else-if="cat.coverImage" :src="cat.coverImage" :alt="cat.name" />
+            <el-icon v-else :size="36"><FolderOpened /></el-icon>
           </div>
           <span>{{ cat.name }}</span>
         </div>
@@ -26,7 +30,6 @@
             <img v-else-if="getCoverMedia(p)" :src="hoveredId === p.id ? getHoverMedia(p) : getCoverMedia(p)" :alt="p.name" />
             <span v-else class="image-placeholder">{{ p.name?.charAt(0) }}</span>
             <span class="media-badge" v-if="getFirstVideo(p)"><el-icon :size="14"><VideoCameraFilled /></el-icon></span>
-            <span class="media-badge gif-badge" v-else-if="hasGif(p)">GIF</span>
             <div class="product-actions" v-if="hoveredId === p.id">
               <el-button type="primary" size="small" round @click.stop="$router.push(`/product/${p.id}`)">查看详情</el-button>
             </div>
@@ -68,6 +71,7 @@ const popularProducts = ref([])
 const showcaseCats = ref([])
 const popularLoading = ref(true)
 const hoveredId = ref(null)
+const showcaseHoverId = ref(null)
 const allCategories = ref([])
 const categoryMap = ref({})
 
@@ -87,17 +91,9 @@ function parseVideos(product) {
   } catch { return [] }
 }
 
-function isVideo(url) { return /\.mp4$/i.test(url) }
-function isGif(url) { return /\.gif$/i.test(url) }
-
 function getFirstVideo(product) {
   const videos = parseVideos(product)
   return videos.length > 0 ? videos[0] : null
-}
-
-function hasGif(product) {
-  const imgs = parseImages(product)
-  return imgs.some(u => isGif(u))
 }
 
 // Priority: video > gif > static image > coverImage
@@ -121,26 +117,63 @@ function getCategoryName(catId) {
   return categoryMap.value[catId] || ''
 }
 
+function catParseVideos(cat) {
+  if (!cat.videos) return []
+  try { return typeof cat.videos === 'string' ? JSON.parse(cat.videos) : cat.videos } catch { return [] }
+}
+
+function catFirstVideo(cat) {
+  const v = catParseVideos(cat)
+  return v.length > 0 ? v[0] : null
+}
+
 onMounted(async () => {
-  // Load categories for name mapping
+  // Load categories for name mapping + showcase
   try {
     const res = await getCategories()
-    showcaseCats.value = (res.data || []).slice(0, 4)
     const flat = []
     function walk(items) {
       items.forEach(i => { flat.push(i); categoryMap.value[i.id] = i.name; if (i.children) walk(i.children) })
     }
     walk(res.data || [])
     allCategories.value = flat
+
+    // Showcase: use admin-selected entries if configured, otherwise first 4
+    const rawShowcase = pc.value.showcase_categories
+    if (Array.isArray(rawShowcase) && rawShowcase.length > 0) {
+      showcaseCats.value = rawShowcase.map(item => {
+        const catId = typeof item === 'object' ? item.categoryId : item
+        const cat = flat.find(c => c.id === catId)
+        if (!cat) return null
+        // Merge per-entry cover/video overrides onto the category object
+        return {
+          ...cat,
+          coverImage: (typeof item === 'object' && item.coverImage) || cat.coverImage,
+          videos: (typeof item === 'object' && item.videos) || cat.videos
+        }
+      }).filter(Boolean)
+    } else {
+      showcaseCats.value = flat.filter(c => !c.parentId).slice(0, 4)
+    }
   } catch {}
 
-  // Load popular products
-  const count = parseInt(config.value?.popular_count || '8')
-  const sort = config.value?.popular_sort || 'sales'
-  try {
-    const res = await getProducts({ page: 1, size: count, sort })
-    popularProducts.value = res.data?.list || []
-  } catch {} finally { popularLoading.value = false }
+  // Load popular products: admin-selected or auto by sales
+  const rawPopular = pc.value.popular_products
+  if (Array.isArray(rawPopular) && rawPopular.length > 0) {
+    const ids = rawPopular.map(item => typeof item === 'object' ? item.productId : item)
+    try {
+      const res = await getProducts({ page: 1, size: ids.length, sort: 'id' })
+      const all = res.data?.list || []
+      popularProducts.value = ids.map(id => all.find(p => p.id === id)).filter(Boolean)
+    } catch {} finally { popularLoading.value = false }
+  } else {
+    const count = parseInt(config.value?.popular_count || '8')
+    const sort = config.value?.popular_sort || 'sales'
+    try {
+      const res = await getProducts({ page: 1, size: count, sort })
+      popularProducts.value = res.data?.list || []
+    } catch {} finally { popularLoading.value = false }
+  }
 })
 </script>
 
@@ -191,8 +224,23 @@ onMounted(async () => {
   color: #00676b;
   transform: translateY(-2px);
 }
-.showcase-icon {
-  color: #00676b;
+.showcase-media {
+  width: 80px; height: 80px; border-radius: 8px; overflow: hidden;
+  background: #f0f2f5; display: flex; align-items: center; justify-content: center;
+  color: #00676b; transition: transform 0.3s;
+}
+.showcase-media img,
+.showcase-media video {
+  width: 100%; height: 100%; object-fit: cover;
+}
+.showcase-media video {
+  opacity: 0.5; transition: opacity 0.3s;
+}
+.showcase-video-playing {
+  opacity: 1 !important;
+}
+.showcase-card:hover .showcase-media {
+  transform: scale(1.05);
 }
 
 .product-grid {
@@ -250,9 +298,6 @@ onMounted(async () => {
   font-size: 11px;
   font-weight: 600;
   z-index: 2;
-}
-.gif-badge {
-  background: rgba(0,103,107,0.8);
 }
 .image-placeholder {
   font-size: 64px;

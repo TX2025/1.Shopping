@@ -20,7 +20,8 @@ public class PageConfigServiceImpl implements PageConfigService {
         "PRODUCT_DETAIL", Constants.PAGE_CONFIG_PRODUCT_DETAIL_DEFAULT,
         "CART", Constants.PAGE_CONFIG_CART_DEFAULT,
         "PAYMENT", Constants.PAGE_CONFIG_PAYMENT_DEFAULT,
-        "THANK_YOU", Constants.PAGE_CONFIG_THANK_YOU_DEFAULT
+        "THANK_YOU", Constants.PAGE_CONFIG_THANK_YOU_DEFAULT,
+        "FOOTER", Constants.PAGE_CONFIG_FOOTER_DEFAULT
     );
 
     private final PageConfigRepository pageConfigRepository;
@@ -58,6 +59,9 @@ public class PageConfigServiceImpl implements PageConfigService {
             "popular_enabled", field("boolean", "热门推荐", true),
             "trust_enabled", field("boolean", "信任区", true)
         ),
+        "FOOTER", Map.of(
+            "footer_subscribe_text", field("string", "订阅引导语", "订阅我们的资讯，获取最新优惠信息")
+        ),
         "PRODUCT_LIST", Map.of(
             "displayMode", field("select:grid,list", "展示模式", "grid"),
             "pageSize", field("number", "每页数量", 20),
@@ -70,7 +74,8 @@ public class PageConfigServiceImpl implements PageConfigService {
             "showRelatedProducts", field("boolean", "相关推荐", true),
             "relatedCount", field("number", "推荐数量", 4),
             "showSalesCount", field("boolean", "显示销量", true),
-            "showShareButtons", field("boolean", "分享按钮", true)
+            "showShareButtons", field("boolean", "分享按钮", true),
+            "imageSwitchInterval", field("number", "图片切换间隔(秒)", 5)
         ),
         "CART", Map.of(
             "promotionText", field("string", "促销文案", "满99元免运费"),

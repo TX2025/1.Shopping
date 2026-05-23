@@ -5,7 +5,7 @@
         <div class="admin-logo" @click="$router.push('/admin')">
           <span>后台管理</span>
         </div>
-        <el-menu router :default-active="route.path" background-color="#304156" text-color="#bfcbd9" active-text-color="#409EFF">
+        <el-menu router :default-active="route.path" :default-openeds="openedMenus" background-color="#304156" text-color="#bfcbd9" active-text-color="#409EFF">
           <el-menu-item index="/admin">
             <el-icon><DataAnalysis /></el-icon> 仪表盘
           </el-menu-item>
@@ -42,12 +42,15 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
+
+const openedMenus = computed(() => route.path.startsWith('/admin/settings') ? ['settings'] : [])
 
 function handleLogout() {
   auth.logout()
@@ -56,8 +59,9 @@ function handleLogout() {
 </script>
 
 <style scoped>
-.admin-layout { height: 100vh; }
-.admin-sidebar { background: #304156; overflow-y: auto; }
+.admin-layout { height: 100vh; overflow: hidden; }
+.admin-layout > .el-container { height: 100%; }
+.admin-sidebar { background: #304156; overflow-y: auto; height: 100%; }
 .admin-logo { height: 64px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 18px; cursor: pointer; }
 .admin-header { background: #fff; border-bottom: 1px solid #e6e6e6; display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
 </style>

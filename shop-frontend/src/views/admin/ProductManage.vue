@@ -6,23 +6,27 @@
     </div>
     <el-table :data="products" v-loading="loading" border>
       <el-table-column prop="id" label="ID" width="60" />
-      <el-table-column label="封面" width="70">
+      <el-table-column label="封面" width="100">
         <template #default="{row}">
-          <img v-if="row.coverImage" :src="row.coverImage" class="thumb" />
-          <span v-else style="color:#ccc;font-size:20px">-</span>
+          <div class="cover-cell">
+            <video v-if="isVideo(coverMedia(row))" :src="coverMedia(row)" muted class="cover-thumb" />
+            <img v-else-if="coverMedia(row)" :src="coverMedia(row)" class="cover-thumb" />
+            <span v-else class="cover-placeholder"><el-icon :size="24"><PictureFilled /></el-icon></span>
+            <span class="cover-badge" v-if="vidCount(row)"><el-icon :size="10"><VideoCameraFilled /></el-icon></span>
+          </div>
         </template>
       </el-table-column>
       <el-table-column prop="name" label="名称" min-width="160" />
       <el-table-column prop="price" label="价格" width="100"><template #default="{row}">¥{{ row.price }}</template></el-table-column>
       <el-table-column prop="stock" label="库存" width="80" />
       <el-table-column prop="sales" label="销量" width="80" />
-      <el-table-column label="媒体" width="100">
+      <el-table-column label="媒体" width="110">
         <template #default="{row}">
-          <span style="font-size:12px">
-            <span v-if="imgCount(row)">🖼{{ imgCount(row) }}</span>
-            <span v-if="vidCount(row)" style="margin-left:6px">🎬{{ vidCount(row) }}</span>
-            <span v-if="!imgCount(row) && !vidCount(row)" style="color:#ccc">-</span>
-          </span>
+          <div class="media-cell">
+            <span v-if="imgCount(row)" class="media-badge"><el-icon :size="14"><PictureFilled /></el-icon> {{ imgCount(row) }}</span>
+            <span v-if="vidCount(row)" class="media-badge video"><el-icon :size="14"><VideoCameraFilled /></el-icon> {{ vidCount(row) }}</span>
+            <span v-if="!imgCount(row) && !vidCount(row)" style="color:#ccc;font-size:13px">-</span>
+          </div>
         </template>
       </el-table-column>
       <el-table-column label="状态" width="80">
@@ -46,6 +50,7 @@
 import { ref, onMounted } from 'vue'
 import { getAdminProducts, updateProductStatus, deleteProduct } from '../../api/admin'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { PictureFilled, VideoCameraFilled } from '@element-plus/icons-vue'
 
 const products = ref([])
 const total = ref(0)
@@ -59,8 +64,23 @@ function parseJsonField(val) {
   if (Array.isArray(val)) return val
   try { return JSON.parse(val) } catch { return [] }
 }
-function imgCount(row) { return parseJsonField(row.images).length + (row.coverImage ? 1 : 0) }
+
+function isVideo(url) { return url && /\.mp4$/i.test(url) }
+function imgCount(row) {
+  let count = parseJsonField(row.images).length
+  if (row.coverImage && !isVideo(row.coverImage)) count++
+  return count
+}
+
 function vidCount(row) { return parseJsonField(row.videos).length }
+
+function coverMedia(row) {
+  const videos = parseJsonField(row.videos)
+  if (videos.length > 0) return videos[0]
+  const imgs = parseJsonField(row.images)
+  if (imgs.length > 0) return imgs[0]
+  return row.coverImage || null
+}
 
 async function load() {
   loading.value = true
@@ -92,5 +112,22 @@ async function handleDelete(row) {
 
 <style scoped>
 .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.thumb { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; }
+
+.cover-cell { position: relative; width: 64px; height: 64px; margin: 0 auto; }
+.cover-thumb { width: 64px; height: 64px; object-fit: cover; border-radius: 6px; background: #f5f5f5; }
+.cover-placeholder {
+  width: 64px; height: 64px; display: flex; align-items: center; justify-content: center;
+  background: #f5f5f5; border-radius: 6px; color: #ccc;
+}
+.cover-badge {
+  position: absolute; top: 2px; right: 2px; background: rgba(0,0,0,0.55); color: #fff;
+  border-radius: 3px; padding: 1px 4px; display: flex; align-items: center; font-size: 10px;
+  font-weight: 600; line-height: 1;
+}
+.media-cell { display: flex; gap: 10px; align-items: center; }
+.media-badge {
+  display: inline-flex; align-items: center; gap: 3px; font-size: 13px;
+  color: #409EFF; font-weight: 600;
+}
+.media-badge.video { color: #E6A23C; }
 </style>

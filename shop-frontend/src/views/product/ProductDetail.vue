@@ -10,27 +10,26 @@
       </div>
 
       <div class="detail-main">
-        <div class="detail-gallery">
-          <div class="gallery-main">
-            <video v-if="isVideo(currentMedia)" :src="currentMedia" controls autoplay class="gallery-video" />
-            <img v-else-if="currentMedia" :src="currentMedia" :alt="product.name" />
-            <span v-else class="gallery-placeholder">{{ product.name?.charAt(0) }}</span>
-          </div>
+        <div class="detail-gallery" @mouseenter="pauseAutoSwitch" @mouseleave="resumeAutoSwitch">
           <div class="gallery-thumbs" v-if="allMedia.length > 1">
             <div
               v-for="(item, idx) in allMedia"
               :key="idx"
               class="thumb-item"
-              :class="{ active: currentMedia === item.url }"
-              @click="currentMedia = item.url"
+              :class="{ active: currentIndex === idx }"
+              @click="selectMedia(idx)"
             >
               <img v-if="item.type === 'image' || item.type === 'gif'" :src="item.url" :alt="`${product.name} ${idx+1}`" />
-              <span class="thumb-gif-badge" v-if="item.type === 'gif'">GIF</span>
               <div v-else-if="item.type === 'video'" class="thumb-video">
                 <video :src="item.url" muted preload="metadata" />
-                <el-icon :size="20" class="thumb-play"><VideoCameraFilled /></el-icon>
+                <el-icon :size="16" class="thumb-play"><VideoCameraFilled /></el-icon>
               </div>
             </div>
+          </div>
+          <div class="gallery-main">
+            <video v-if="isVideo(currentMedia)" :src="currentMedia" controls autoplay class="gallery-video" />
+            <img v-else-if="currentMedia" :src="currentMedia" :alt="product.name" />
+            <span v-else class="gallery-placeholder">{{ product.name?.charAt(0) }}</span>
           </div>
         </div>
         <div class="detail-info">
@@ -69,9 +68,12 @@
       <div class="related" v-if="pc.showRelatedProducts !== false && relatedProducts.length">
         <h2 class="section-title">You May Also Like</h2>
         <div class="related-grid">
-          <div class="product-card" v-for="p in relatedProducts" :key="p.id" @click="$router.push(`/product/${p.id}`)">
+          <div class="product-card" v-for="p in relatedProducts" :key="p.id"
+            @click="goToProduct(p)"
+            @mouseenter="relatedHoverId = p.id" @mouseleave="relatedHoverId = null">
             <div class="product-image">
-              <img v-if="p.coverImage" :src="p.coverImage" :alt="p.name" />
+              <video v-if="relatedHoverId === p.id && getRelatedFirstVideo(p)" :src="getRelatedFirstVideo(p)" autoplay muted loop playsinline class="product-video" />
+              <img v-else-if="getRelatedCover(p)" :src="getRelatedCover(p)" :alt="p.name" />
               <span v-else class="image-placeholder">{{ p.name?.charAt(0) }}</span>
             </div>
             <div class="product-info">
@@ -87,7 +89,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getProductDetail, getProducts } from '../../api/product'
 import { usePageConfig } from '../../composables/usePageConfig'
@@ -103,7 +105,17 @@ const { config: pc } = usePageConfig('PRODUCT_DETAIL')
 const product = ref(null)
 const quantity = ref(1)
 const relatedProducts = ref([])
-const currentMedia = ref('')
+const relatedHoverId = ref(null)
+const currentIndex = ref(0)
+let autoTimer = null
+let autoPaused = false
+
+const currentMedia = computed(() => {
+  const items = allMedia.value
+  if (items.length === 0) return ''
+  const idx = Math.min(currentIndex.value, items.length - 1)
+  return items[idx]?.url || ''
+})
 
 const allMedia = computed(() => {
   if (!product.value) return []
@@ -138,6 +150,25 @@ const allMedia = computed(() => {
 
 function isVideo(url) { return url && /\.mp4$/i.test(url) }
 
+function relatedParseImages(p) {
+  if (!p.images) return []
+  try { return typeof p.images === 'string' ? JSON.parse(p.images) : p.images } catch { return [] }
+}
+function relatedParseVideos(p) {
+  if (!p.videos) return []
+  try { return typeof p.videos === 'string' ? JSON.parse(p.videos) : p.videos } catch { return [] }
+}
+function getRelatedFirstVideo(p) {
+  return relatedParseVideos(p)[0] || null
+}
+function getRelatedCover(p) {
+  const vids = relatedParseVideos(p)
+  if (vids.length > 0) return vids[0]
+  const imgs = relatedParseImages(p)
+  if (imgs.length > 0) return imgs[0]
+  return p.coverImage || null
+}
+
 const discountPercent = computed(() => {
   if (!product.value?.originalPrice || !product.value?.price) return null
   const orig = parseFloat(product.value.originalPrice)
@@ -146,37 +177,70 @@ const discountPercent = computed(() => {
   return Math.round((1 - now / orig) * 100)
 })
 
-onMounted(async () => {
+const switchInterval = computed(() => parseInt(pc.value?.imageSwitchInterval || '5') * 1000)
+
+function selectMedia(idx) {
+  currentIndex.value = idx
+  resetAutoTimer()
+}
+
+function pauseAutoSwitch() {
+  autoPaused = true
+  stopAutoTimer()
+}
+
+function resumeAutoSwitch() {
+  autoPaused = false
+  if (allMedia.value.length > 1) startAutoTimer()
+}
+
+function stopAutoTimer() {
+  if (autoTimer) { clearInterval(autoTimer); autoTimer = null }
+}
+
+function startAutoTimer() {
+  stopAutoTimer()
+  if (autoPaused) return
+  const ms = switchInterval.value
+  if (ms <= 0) return
+  autoTimer = setInterval(() => {
+    const len = allMedia.value.length
+    if (len <= 1) return
+    currentIndex.value = (currentIndex.value + 1) % len
+  }, ms)
+}
+
+function resetAutoTimer() {
+  stopAutoTimer()
+  if (!autoPaused && allMedia.value.length > 1) startAutoTimer()
+}
+
+async function loadProduct(id) {
+  stopAutoTimer()
+  currentIndex.value = 0
   try {
-    const res = await getProductDetail(route.params.id)
+    const res = await getProductDetail(id)
     product.value = res.data
-    // Set initial media: first video > first gif > first image > coverImage
-    const p = res.data
-    let best = ''
-    if (p.videos) {
-      try {
-        const videos = typeof p.videos === 'string' ? JSON.parse(p.videos) : p.videos
-        if (videos.length) best = videos[0]
-      } catch {}
-    }
-    if (!best && p.images) {
-      try {
-        const imgs = typeof p.images === 'string' ? JSON.parse(p.images) : p.images
-        if (imgs.length) best = imgs[0]
-      } catch {}
-    }
-    if (!best) best = p.coverImage || ''
-    currentMedia.value = best
   } catch {}
 
   if (pc.value.showRelatedProducts !== false) {
     try {
       const count = pc.value.relatedCount || 4
       const res = await getProducts({ page: 1, size: count, sort: 'sales' })
-      relatedProducts.value = (res.data?.list || []).filter(p => p.id !== Number(route.params.id)).slice(0, count)
+      relatedProducts.value = (res.data?.list || []).filter(p => p.id !== Number(id)).slice(0, count)
     } catch {}
   }
+
+  if (allMedia.value.length > 1) startAutoTimer()
+}
+
+onMounted(() => loadProduct(route.params.id))
+
+watch(() => route.params.id, (newId) => {
+  if (newId) loadProduct(newId)
 })
+
+onBeforeUnmount(() => stopAutoTimer())
 
 async function addToCart() {
   if (!product.value) return
@@ -191,6 +255,11 @@ async function buyNow() {
   router.push('/cart')
 }
 
+function goToProduct(p) {
+  if (!p?.id) return
+  router.push(`/product/${p.id}`)
+}
+
 function copyLink() {
   navigator.clipboard?.writeText(window.location.href)
   ElMessage.success('链接已复制')
@@ -202,7 +271,18 @@ function copyLink() {
 .breadcrumb { margin-bottom: 24px; }
 
 .detail-main { display: flex; gap: 48px; }
-.detail-gallery { flex: 0 0 480px; }
+.detail-gallery {
+  display: flex;
+  gap: 12px;
+  flex: 0 0 auto;
+}
+.gallery-thumbs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+  width: 72px;
+}
 .gallery-main {
   width: 480px;
   height: 480px;
@@ -225,20 +305,16 @@ function copyLink() {
   color: #00676b;
   font-weight: bold;
 }
-.gallery-thumbs {
-  display: flex;
-  gap: 10px;
-  margin-top: 12px;
-}
 .thumb-item {
-  width: 64px;
-  height: 64px;
+  width: 72px;
+  height: 72px;
   border-radius: 6px;
   overflow: hidden;
   cursor: pointer;
   border: 2px solid transparent;
   transition: border-color 0.2s;
   background: #f5f5f5;
+  flex-shrink: 0;
 }
 .thumb-item.active {
   border-color: #00676b;
@@ -266,18 +342,7 @@ function copyLink() {
   color: #fff;
   background: rgba(0,0,0,0.5);
   border-radius: 50%;
-  padding: 4px;
-}
-.thumb-gif-badge {
-  position: absolute;
-  bottom: 2px;
-  right: 2px;
-  background: rgba(0,103,107,0.85);
-  color: #fff;
-  font-size: 9px;
-  font-weight: 700;
-  padding: 1px 5px;
-  border-radius: 3px;
+  padding: 3px;
 }
 .gallery-video {
   width: 100%;
@@ -405,7 +470,8 @@ function copyLink() {
   justify-content: center;
   overflow: hidden;
 }
-.product-image img {
+.product-image img,
+.product-video {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -434,8 +500,10 @@ function copyLink() {
 
 @media (max-width: 768px) {
   .detail-main { flex-direction: column; gap: 24px; }
-  .detail-gallery { flex: 0; }
+  .detail-gallery { flex-direction: column-reverse; }
+  .gallery-thumbs { flex-direction: row; width: auto; overflow-x: auto; }
   .gallery-main { width: 100%; height: 340px; }
+  .thumb-item { width: 56px; height: 56px; }
   .related-grid { grid-template-columns: repeat(2, 1fr); }
   .actions { flex-direction: column; align-items: stretch; }
   .add-cart-btn, .buy-now-btn { width: 100%; }

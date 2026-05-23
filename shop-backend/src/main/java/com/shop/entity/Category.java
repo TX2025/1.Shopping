@@ -27,6 +27,12 @@ public class Category {
     @Column(length = 500)
     private String icon;
 
+    @Column(name = "cover_image", length = 500)
+    private String coverImage;
+
+    @Column(columnDefinition = "TEXT")
+    private String videos;
+
     @Column(name = "create_time")
     private LocalDateTime createTime;
 
