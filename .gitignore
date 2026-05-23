@@ -1,0 +1,26 @@
+# ============ Node / Vue ============
+node_modules/
+dist/
+*.local
+
+# ============ Java / Maven ============
+target/
+*.class
+*.jar
+*.war
+*.log
+
+# ============ IDE ============
+.idea/
+*.iml
+.vscode/
+
+# ============ OS ============
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# ============ Env ============
+.env
+.env.*
