@@ -23,5 +23,7 @@ export function updateSiteConfigs(data) { return request.put('/admin/site-config
 export function getPageConfigs() { return request.get('/admin/page-configs') }
 export function updatePageConfig(pageType, data) { return request.put(`/admin/page-configs/${pageType}`, data) }
 
+export function getPageConfigSchema(pageType) { return request.get(`/admin/page-configs/${pageType}/schema`) }
+
 export function getSiteConfig() { return request.get('/site-config') }
 export function getPageConfig(type) { return request.get(`/page-config/${type}`) }

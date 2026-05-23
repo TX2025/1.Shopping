@@ -14,5 +14,8 @@ import AppFooter from '../components/Footer.vue'
 </script>
 
 <style scoped>
-.main-content { padding-top: 64px; min-height: calc(100vh - 200px); }
+.main-content {
+  padding-top: 140px;
+  min-height: calc(100vh - 200px);
+}
 </style>

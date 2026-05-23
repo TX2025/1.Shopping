@@ -109,23 +109,33 @@ public class DataInitializer implements CommandLineRunner {
                 config("marketing_popup_content", "{\"title\":\"新用户优惠\",\"content\":\"注册即享首单9折优惠！\"}", "弹窗内容")
             );
             siteConfigRepository.saveAll(configs);
-            log.info("Site configs initialized");
         }
+        // Always ensure new keys exist (incremental update for older installations)
+        Constants.SITE_CONFIG_DEFAULTS.forEach((key, defaultValue) -> {
+            if (siteConfigRepository.findByConfigKey(key).isEmpty()) {
+                siteConfigRepository.save(SiteConfig.builder().configKey(key).configValue(defaultValue).description("").build());
+                log.info("Added site config: {}", key);
+            }
+        });
+        log.info("Site configs initialized");
     }
 
     private void initPageConfig() {
-        if (pageConfigRepository.count() == 0) {
-            List<PageConfig> configs = List.of(
-                pageConfig("HOME", "{\"banners\":[],\"sections\":[{\"type\":\"category_showcase\",\"title\":\"热门分类\",\"categoryIds\":[]},{\"type\":\"product_grid\",\"title\":\"推荐商品\",\"displayCount\":8,\"sortBy\":\"sales\"}]}"),
-                pageConfig("PRODUCT_LIST", "{\"displayMode\":\"grid\",\"pageSize\":20,\"showFilters\":[\"category\",\"price\",\"keyword\"],\"defaultSort\":\"newest\",\"sidebarPosition\":\"left\"}"),
-                pageConfig("PRODUCT_DETAIL", "{\"showRelatedProducts\":true,\"relatedCount\":4,\"imageDisplayMode\":\"thumbnail\",\"showSalesCount\":true}"),
-                pageConfig("CART", "{\"showRelatedProducts\":true,\"promotionText\":\"满99元免运费\",\"showQuantityDiscount\":false}"),
-                pageConfig("PAYMENT", "{\"paymentMethods\":[\"alipay\",\"wechat\"],\"instructionText\":\"请在15分钟内完成支付\",\"showOrderSummary\":true}"),
-                pageConfig("THANK_YOU", "{\"message\":\"感谢您的购买！\",\"subMessage\":\"我们会尽快为您发货\",\"buttonText\":\"继续购物\",\"buttonLink\":\"/products\",\"autoRedirectSeconds\":10}")
+        java.util.Map<String, String> defaults = java.util.Map.of(
+            "HOME", Constants.PAGE_CONFIG_HOME_DEFAULT,
+            "PRODUCT_LIST", Constants.PAGE_CONFIG_PRODUCT_LIST_DEFAULT,
+            "PRODUCT_DETAIL", Constants.PAGE_CONFIG_PRODUCT_DETAIL_DEFAULT,
+            "CART", Constants.PAGE_CONFIG_CART_DEFAULT,
+            "PAYMENT", Constants.PAGE_CONFIG_PAYMENT_DEFAULT,
+            "THANK_YOU", Constants.PAGE_CONFIG_THANK_YOU_DEFAULT
+        );
+        defaults.forEach((type, json) -> {
+            pageConfigRepository.findByPageType(type).ifPresentOrElse(
+                pc -> { pc.setConfigJson(json); pageConfigRepository.save(pc); },
+                () -> pageConfigRepository.save(PageConfig.builder().pageType(type).configJson(json).build())
             );
-            pageConfigRepository.saveAll(configs);
-            log.info("Page configs initialized");
-        }
+        });
+        log.info("Page configs initialized (updated to latest defaults)");
     }
 
     private SiteConfig config(String key, String value, String desc) {
