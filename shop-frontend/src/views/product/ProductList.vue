@@ -24,14 +24,22 @@
         </div>
 
         <div v-if="displayMode === 'grid'" class="product-grid">
-          <div class="product-card" v-for="p in products" :key="p.id" @click="$router.push(`/product/${p.id}`)">
+          <div class="product-card" v-for="p in products" :key="p.id" @click="$router.push(`/product/${p.id}`)"
+            @mouseenter="hoveredId = p.id" @mouseleave="hoveredId = null">
             <div class="product-image">
-              <img v-if="p.coverImage" :src="p.coverImage" :alt="p.name" />
+              <video v-if="hoveredId === p.id && getFirstVideo(p)" :src="getFirstVideo(p)" autoplay muted loop playsinline class="product-video" />
+              <img v-else-if="getCoverMedia(p)" :src="hoveredId === p.id ? getHoverMedia(p) : getCoverMedia(p)" :alt="p.name" />
               <span v-else class="image-placeholder">{{ p.name?.charAt(0) }}</span>
+              <span class="media-badge" v-if="getFirstVideo(p)"><el-icon :size="14"><VideoCameraFilled /></el-icon></span>
+              <span class="media-badge gif-badge" v-else-if="hasGif(p)">GIF</span>
+              <div class="product-actions" v-if="hoveredId === p.id">
+                <el-button type="primary" size="small" round @click.stop="$router.push(`/product/${p.id}`)">查看详情</el-button>
+              </div>
             </div>
             <div class="product-info">
               <h4>{{ p.name }}</h4>
               <div class="product-price">
+                <span class="price-label">Starting at</span>
                 <span class="price-now">¥{{ p.price }}</span>
                 <span class="price-old" v-if="pc.showOriginalPrice !== false && p.originalPrice && p.originalPrice > p.price">¥{{ p.originalPrice }}</span>
               </div>
@@ -43,8 +51,11 @@
         <div v-else>
           <div class="list-item" v-for="p in products" :key="p.id" @click="$router.push(`/product/${p.id}`)">
             <div class="list-image">
-              <img v-if="p.coverImage" :src="p.coverImage" :alt="p.name" />
+              <video v-if="getFirstVideo(p)" :src="getFirstVideo(p)" muted preload="metadata" />
+              <img v-else-if="getCoverMedia(p)" :src="getCoverMedia(p)" :alt="p.name" />
               <span v-else class="image-placeholder">{{ p.name?.charAt(0) }}</span>
+              <span class="media-badge" v-if="getFirstVideo(p)"><el-icon :size="12"><VideoCameraFilled /></el-icon></span>
+              <span class="media-badge gif-badge" v-else-if="hasGif(p)">GIF</span>
             </div>
             <div class="list-info">
               <h4>{{ p.name }}</h4>
@@ -70,6 +81,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { getProducts, getCategories } from '../../api/product'
 import { usePageConfig } from '../../composables/usePageConfig'
+import { VideoCameraFilled } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const { config: pc } = usePageConfig('PRODUCT_LIST')
@@ -80,6 +92,49 @@ const total = ref(0)
 const page = ref(1)
 const displayMode = ref('grid')
 const filters = ref({ categoryId: null, keyword: '', sort: 'newest' })
+const hoveredId = ref(null)
+
+function parseImages(product) {
+  if (!product.images) return []
+  try {
+    return typeof product.images === 'string' ? JSON.parse(product.images) : product.images
+  } catch { return [] }
+}
+
+function parseVideos(product) {
+  if (!product.videos) return []
+  try {
+    return typeof product.videos === 'string' ? JSON.parse(product.videos) : product.videos
+  } catch { return [] }
+}
+
+function isVideo(url) { return /\.mp4$/i.test(url) }
+function isGif(url) { return /\.gif$/i.test(url) }
+
+function getFirstVideo(product) {
+  const videos = parseVideos(product)
+  return videos.length > 0 ? videos[0] : null
+}
+
+function hasGif(product) {
+  const imgs = parseImages(product)
+  return imgs.some(u => isGif(u))
+}
+
+function getCoverMedia(product) {
+  const firstVideo = getFirstVideo(product)
+  if (firstVideo) return firstVideo
+  const imgs = parseImages(product)
+  if (imgs.length > 0) return imgs[0]
+  return product.coverImage || null
+}
+
+function getHoverMedia(product) {
+  const imgs = parseImages(product)
+  const cover = getCoverMedia(product)
+  const second = imgs.find(u => u !== cover)
+  return second || cover
+}
 
 const showSidebar = computed(() => pc.value.showSidebar !== false)
 const pageSize = computed(() => pc.value.pageSize || 20)
@@ -132,37 +187,77 @@ async function loadProducts() {
 }
 .product-card {
   background: #fff;
-  border-radius: 8px;
+  border-radius: 10px;
   overflow: hidden;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.3s ease;
   box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  border: 1px solid #f0f0f0;
 }
 .product-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  transform: translateY(-6px);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.12);
+  border-color: transparent;
 }
 .product-image {
-  height: 200px;
-  background: #f0f2f5;
+  height: 220px;
+  background: #f7f8f9;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  position: relative;
 }
 .product-image img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.3s;
+  transition: transform 0.5s ease;
+}
+.product-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .product-card:hover .product-image img {
-  transform: scale(1.05);
+  transform: scale(1.08);
+}
+.media-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(0,0,0,0.55);
+  color: #fff;
+  border-radius: 4px;
+  padding: 2px 6px;
+  display: flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  z-index: 2;
+}
+.gif-badge {
+  background: rgba(0,103,107,0.8);
 }
 .image-placeholder {
   font-size: 56px;
   color: #00676b;
   font-weight: bold;
+}
+.product-actions {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 16px;
+  background: linear-gradient(transparent, rgba(0,0,0,0.5));
+  display: flex;
+  justify-content: center;
+  animation: fadeInUp 0.25s ease;
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 .product-info {
   padding: 14px;
@@ -174,21 +269,30 @@ async function loadProducts() {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: 500;
 }
 .product-price {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: 6px;
+  flex-wrap: wrap;
   margin-bottom: 4px;
 }
-.price-now { color: #e74c3c; font-size: 17px; font-weight: bold; }
+.price-label {
+  font-size: 11px;
+  color: #999;
+  width: 100%;
+  margin-bottom: 2px;
+}
+.price-now { color: #e74c3c; font-size: 18px; font-weight: bold; }
 .price-old { color: #bbb; font-size: 12px; text-decoration: line-through; }
-.sales { font-size: 12px; color: #999; margin: 0; }
+.sales { font-size: 12px; color: #999; margin: 4px 0 0; }
 
 .list-item { display: flex; gap: 20px; padding: 16px; margin-bottom: 12px; background: #fff; border-radius: 8px; cursor: pointer; box-shadow: 0 1px 6px rgba(0,0,0,0.05); transition: box-shadow 0.3s; }
 .list-item:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
-.list-image { width: 160px; height: 160px; background: #f0f2f5; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 4px; overflow: hidden; }
+.list-image { width: 160px; height: 160px; background: #f0f2f5; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 4px; overflow: hidden; position: relative; }
 .list-image img { width: 100%; height: 100%; object-fit: cover; }
+.list-image video { width: 100%; height: 100%; object-fit: cover; }
 .list-info { flex: 1; }
 .list-info h4 { margin: 0 0 8px; font-size: 16px; }
 .desc { color: #888; font-size: 13px; margin-bottom: 8px; line-height: 1.5; }

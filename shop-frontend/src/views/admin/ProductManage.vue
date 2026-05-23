@@ -6,10 +6,25 @@
     </div>
     <el-table :data="products" v-loading="loading" border>
       <el-table-column prop="id" label="ID" width="60" />
-      <el-table-column prop="name" label="名称" min-width="180" />
+      <el-table-column label="封面" width="70">
+        <template #default="{row}">
+          <img v-if="row.coverImage" :src="row.coverImage" class="thumb" />
+          <span v-else style="color:#ccc;font-size:20px">-</span>
+        </template>
+      </el-table-column>
+      <el-table-column prop="name" label="名称" min-width="160" />
       <el-table-column prop="price" label="价格" width="100"><template #default="{row}">¥{{ row.price }}</template></el-table-column>
       <el-table-column prop="stock" label="库存" width="80" />
       <el-table-column prop="sales" label="销量" width="80" />
+      <el-table-column label="媒体" width="100">
+        <template #default="{row}">
+          <span style="font-size:12px">
+            <span v-if="imgCount(row)">🖼{{ imgCount(row) }}</span>
+            <span v-if="vidCount(row)" style="margin-left:6px">🎬{{ vidCount(row) }}</span>
+            <span v-if="!imgCount(row) && !vidCount(row)" style="color:#ccc">-</span>
+          </span>
+        </template>
+      </el-table-column>
       <el-table-column label="状态" width="80">
         <template #default="{row}"><el-tag :type="row.status==='ON'?'success':'info'">{{ row.status==='ON'?'上架':'下架' }}</el-tag></template>
       </el-table-column>
@@ -38,6 +53,14 @@ const page = ref(1)
 const loading = ref(false)
 
 onMounted(() => load())
+
+function parseJsonField(val) {
+  if (!val) return []
+  if (Array.isArray(val)) return val
+  try { return JSON.parse(val) } catch { return [] }
+}
+function imgCount(row) { return parseJsonField(row.images).length + (row.coverImage ? 1 : 0) }
+function vidCount(row) { return parseJsonField(row.videos).length }
 
 async function load() {
   loading.value = true
@@ -69,4 +92,5 @@ async function handleDelete(row) {
 
 <style scoped>
 .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.thumb { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; }
 </style>

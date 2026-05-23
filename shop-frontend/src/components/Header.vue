@@ -5,7 +5,7 @@
       <div class="header-inner">
         <router-link to="/" class="logo">{{ siteName }}</router-link>
         <div class="search-bar">
-          <el-input v-model="keyword" placeholder="搜索商品..." size="large" @keyup.enter="search" clearable
+          <el-input v-model="keyword" placeholder="Search..." size="large" @keyup.enter="search" clearable
             :prefix-icon="Search">
             <template #append>
               <el-button @click="search">搜索</el-button>
@@ -17,14 +17,23 @@
             <el-icon><Phone /></el-icon>
             <span>{{ headerPhone }}</span>
           </a>
-          <el-badge :value="cartTotal" :hidden="!cartTotal">
-            <el-button circle size="large" @click="$router.push('/cart')">
+          <div class="lang-switch">
+            <span class="lang-item active">中文</span>
+            <span class="lang-sep">|</span>
+            <span class="lang-item">EN</span>
+          </div>
+          <el-badge :value="cartTotal" :hidden="!cartTotal" class="cart-badge">
+            <el-button circle size="large" @click="$router.push('/cart')" class="cart-btn">
               <el-icon :size="20"><ShoppingCart /></el-icon>
             </el-button>
           </el-badge>
           <template v-if="auth.isLoggedIn">
             <el-dropdown trigger="click">
-              <span class="user-info">{{ auth.username }} <el-icon><ArrowDown /></el-icon></span>
+              <span class="user-info">
+                <el-icon :size="16"><User /></el-icon>
+                {{ auth.username }}
+                <el-icon :size="12"><ArrowDown /></el-icon>
+              </span>
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item @click="$router.push('/user/profile')">个人中心</el-dropdown-item>
@@ -36,21 +45,13 @@
             </el-dropdown>
           </template>
           <template v-else>
-            <el-button @click="$router.push('/login')">登录</el-button>
-            <el-button type="primary" @click="$router.push('/register')">注册</el-button>
+            <el-button class="login-btn" @click="$router.push('/login')">登录</el-button>
+            <el-button type="primary" class="register-btn" @click="$router.push('/register')">注册</el-button>
           </template>
         </div>
       </div>
     </div>
-    <div class="header-nav">
-      <div class="nav-inner">
-        <router-link to="/" class="nav-item">首页</router-link>
-        <router-link to="/products" class="nav-item">全部商品</router-link>
-        <router-link v-for="cat in topCategories" :key="cat.id" :to="`/products?categoryId=${cat.id}`" class="nav-item">
-          {{ cat.name }}
-        </router-link>
-      </div>
-    </div>
+    <CategoryMegaMenu />
   </div>
 </template>
 
@@ -59,10 +60,10 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useCartStore } from '../stores/cart'
-import { getCategories } from '../api/product'
 import { useSiteConfig } from '../composables/useSiteConfig'
-import { Search, ShoppingCart, Phone, ArrowDown } from '@element-plus/icons-vue'
+import { Search, ShoppingCart, Phone, ArrowDown, User } from '@element-plus/icons-vue'
 import PromoBar from './PromoBar.vue'
+import CategoryMegaMenu from './CategoryMegaMenu.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -70,7 +71,6 @@ const cart = useCartStore()
 const keyword = ref('')
 const cartTotal = ref(0)
 const siteName = ref('MyShop')
-const topCategories = ref([])
 
 const { config } = useSiteConfig()
 
@@ -85,10 +85,6 @@ onMounted(async () => {
   if (auth.isLoggedIn) {
     try { await cart.fetchCart(); cartTotal.value = cart.totalCount } catch {}
   }
-  try {
-    const res = await getCategories()
-    topCategories.value = (res.data || []).slice(0, 6)
-  } catch {}
 })
 
 function search() {
@@ -160,35 +156,43 @@ function handleLogout() {
   gap: 4px;
   font-size: 14px;
 }
-.header-nav {
-  background: #00676b;
-  height: 40px;
-}
-.nav-inner {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
-  height: 100%;
+.lang-switch {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
+  font-size: 13px;
+  color: #999;
+  white-space: nowrap;
 }
-.nav-item {
-  color: rgba(255,255,255,0.9);
-  text-decoration: none;
-  padding: 8px 18px;
-  font-size: 14px;
-  border-radius: 2px;
-  transition: background 0.2s;
+.lang-item {
+  cursor: pointer;
+  transition: color 0.2s;
 }
-.nav-item:hover, .nav-item.router-link-active {
-  background: rgba(255,255,255,0.15);
-  color: #fff;
+.lang-item:hover,
+.lang-item.active {
+  color: #00676b;
+  font-weight: 600;
+}
+.lang-sep {
+  color: #ddd;
+}
+.cart-btn {
+  border-color: #e0e0e0;
+}
+.cart-badge {
+  margin: 0 2px;
+}
+.login-btn {
+  border-color: #ddd;
+  color: #555;
+}
+.register-btn {
+  font-weight: 500;
 }
 
 @media (max-width: 768px) {
   .header-phone { display: none; }
-  .search-bar { max-width: 200px; }
-  .nav-inner { overflow-x: auto; }
+  .lang-switch { display: none; }
+  .search-bar { max-width: 180px; }
 }
 </style>

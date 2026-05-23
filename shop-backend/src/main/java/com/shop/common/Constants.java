@@ -33,6 +33,7 @@ public class Constants {
     public static final String SITE_CONFIG_FOOTER_SUBSCRIBE_TEXT = "footer_subscribe_text";
     public static final String SITE_CONFIG_FOOTER_SOCIAL = "footer_social";
     public static final String SITE_CONFIG_FOOTER_PAYMENT_ICONS = "footer_payment_icons";
+    public static final String SITE_CONFIG_LANGUAGE_OPTIONS = "language_options";
 
     /** Default values for site config keys — used when key is missing from DB */
     public static final java.util.Map<String, String> SITE_CONFIG_DEFAULTS = java.util.Map.ofEntries(
@@ -47,12 +48,13 @@ public class Constants {
         java.util.Map.entry(SITE_CONFIG_POPULAR_SORT, "sales"),
         java.util.Map.entry(SITE_CONFIG_TRUST_ENABLED, "true"),
         java.util.Map.entry(SITE_CONFIG_TRUST_TITLE, "为什么选择我们"),
-        java.util.Map.entry(SITE_CONFIG_TRUST_FEATURES, "[{\"icon\":\"TruckFilled\",\"title\":\"全国包邮\",\"description\":\"订单满99元享全国包邮\"},{\"icon\":\"CircleCheckFilled\",\"title\":\"品质保证\",\"description\":\"100%正品保障，假一赔十\"},{\"icon\":\"Clock\",\"title\":\"极速发货\",\"description\":\"下单后24小时内极速发货\"},{\"icon\":\"Service\",\"title\":\"贴心售后\",\"description\":\"7天无理由退换货，售后无忧\"}]"),
+        java.util.Map.entry(SITE_CONFIG_TRUST_FEATURES, "[{\"icon\":\"TruckFilled\",\"title\":\"全国包邮\",\"description\":\"订单满99元享全国包邮\",\"videoUrl\":\"\"},{\"icon\":\"CircleCheckFilled\",\"title\":\"品质保证\",\"description\":\"100%正品保障，假一赔十\",\"videoUrl\":\"\"},{\"icon\":\"Clock\",\"title\":\"极速发货\",\"description\":\"下单后24小时内极速发货\",\"videoUrl\":\"\"},{\"icon\":\"Service\",\"title\":\"贴心售后\",\"description\":\"7天无理由退换货，售后无忧\",\"videoUrl\":\"\"}]"),
         java.util.Map.entry(SITE_CONFIG_FOOTER_ABOUT, "MyShop 致力于为您提供优质的购物体验，汇聚全球好物，让生活更美好。"),
         java.util.Map.entry(SITE_CONFIG_FOOTER_COLUMNS, "[{\"title\":\"购物指南\",\"links\":[{\"label\":\"如何下单\",\"url\":\"#\"},{\"label\":\"支付方式\",\"url\":\"#\"},{\"label\":\"配送说明\",\"url\":\"#\"}]},{\"title\":\"售后服务\",\"links\":[{\"label\":\"退换货政策\",\"url\":\"#\"},{\"label\":\"退款流程\",\"url\":\"#\"},{\"label\":\"投诉建议\",\"url\":\"#\"}]},{\"title\":\"关于我们\",\"links\":[{\"label\":\"公司介绍\",\"url\":\"#\"},{\"label\":\"联系我们\",\"url\":\"#\"},{\"label\":\"加入我们\",\"url\":\"#\"}]},{\"title\":\"关注我们\",\"links\":[{\"label\":\"微博\",\"url\":\"#\"},{\"label\":\"微信公众号\",\"url\":\"#\"},{\"label\":\"小红书\",\"url\":\"#\"}]}]"),
         java.util.Map.entry(SITE_CONFIG_FOOTER_SUBSCRIBE_TEXT, "订阅我们的资讯，获取最新优惠信息"),
         java.util.Map.entry(SITE_CONFIG_FOOTER_SOCIAL, "[{\"platform\":\"微信\",\"url\":\"#\",\"icon\":\"ChatDotSquare\"},{\"platform\":\"微博\",\"url\":\"#\",\"icon\":\"Share\"}]"),
-        java.util.Map.entry(SITE_CONFIG_FOOTER_PAYMENT_ICONS, "[{\"name\":\"微信支付\",\"icon\":\"Wallet\"},{\"name\":\"支付宝\",\"icon\":\"Money\"},{\"name\":\"银联\",\"icon\":\"CreditCard\"}]")
+        java.util.Map.entry(SITE_CONFIG_FOOTER_PAYMENT_ICONS, "[{\"name\":\"微信支付\",\"icon\":\"Wallet\"},{\"name\":\"支付宝\",\"icon\":\"Money\"},{\"name\":\"银联\",\"icon\":\"CreditCard\"}]"),
+        java.util.Map.entry(SITE_CONFIG_LANGUAGE_OPTIONS, "[{\"code\":\"zh\",\"label\":\"中文\"},{\"code\":\"en\",\"label\":\"EN\"}]")
     );
 
     // ========== Page Config Defaults ==========

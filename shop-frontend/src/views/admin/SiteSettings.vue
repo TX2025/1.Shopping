@@ -58,7 +58,7 @@
             </el-form-item>
             <el-form-item label="区块标题"><el-input v-model="form.trust_title" /></el-form-item>
             <el-form-item label="特性列表 (JSON)">
-              <el-input v-model="form.trust_features" type="textarea" :rows="8" placeholder="JSON数组，每项: {icon, title, description}" />
+              <el-input v-model="form.trust_features" type="textarea" :rows="8" placeholder="JSON数组，每项: {icon, title, description, videoUrl}" />
             </el-form-item>
           </el-form>
         </el-tab-pane>
@@ -75,6 +75,14 @@
             </el-form-item>
             <el-form-item label="支付图标 (JSON)">
               <el-input v-model="form.footer_payment_icons" type="textarea" :rows="4" placeholder="JSON数组，每项: {name, icon}" />
+            </el-form-item>
+          </el-form>
+        </el-tab-pane>
+
+        <el-tab-pane label="语言" name="language">
+          <el-form label-width="120px">
+            <el-form-item label="语言选项 (JSON)">
+              <el-input v-model="form.language_options" type="textarea" :rows="4" placeholder="JSON数组，每项: {code, label}" />
             </el-form-item>
           </el-form>
         </el-tab-pane>

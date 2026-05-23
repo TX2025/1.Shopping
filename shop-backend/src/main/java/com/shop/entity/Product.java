@@ -41,6 +41,9 @@ public class Product {
     @Column(columnDefinition = "TEXT")
     private String images;
 
+    @Column(columnDefinition = "TEXT")
+    private String videos;
+
     @Column(length = 20)
     @Builder.Default
     private String status = Constants.PRODUCT_STATUS_ON;

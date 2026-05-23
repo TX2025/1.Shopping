@@ -1,5 +1,13 @@
 import request from '../utils/request'
 
+export function uploadFile(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request.post('/admin/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+}
+
 export function getAdminProducts(params) { return request.get('/admin/products', { params }) }
 export function createProduct(data) { return request.post('/admin/products', data) }
 export function updateProduct(id, data) { return request.put(`/admin/products/${id}`, data) }

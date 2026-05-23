@@ -12,33 +12,62 @@
       <div class="detail-main">
         <div class="detail-gallery">
           <div class="gallery-main">
-            <img v-if="product.coverImage" :src="product.coverImage" :alt="product.name" />
+            <video v-if="isVideo(currentMedia)" :src="currentMedia" controls autoplay class="gallery-video" />
+            <img v-else-if="currentMedia" :src="currentMedia" :alt="product.name" />
             <span v-else class="gallery-placeholder">{{ product.name?.charAt(0) }}</span>
+          </div>
+          <div class="gallery-thumbs" v-if="allMedia.length > 1">
+            <div
+              v-for="(item, idx) in allMedia"
+              :key="idx"
+              class="thumb-item"
+              :class="{ active: currentMedia === item.url }"
+              @click="currentMedia = item.url"
+            >
+              <img v-if="item.type === 'image' || item.type === 'gif'" :src="item.url" :alt="`${product.name} ${idx+1}`" />
+              <span class="thumb-gif-badge" v-if="item.type === 'gif'">GIF</span>
+              <div v-else-if="item.type === 'video'" class="thumb-video">
+                <video :src="item.url" muted preload="metadata" />
+                <el-icon :size="20" class="thumb-play"><VideoCameraFilled /></el-icon>
+              </div>
+            </div>
           </div>
         </div>
         <div class="detail-info">
           <h1>{{ product.name }}</h1>
           <div class="detail-price">
+            <span class="price-label">Starting at</span>
             <span class="price-now">¥{{ product.price }}</span>
             <span class="price-old" v-if="product.originalPrice && product.originalPrice > product.price">¥{{ product.originalPrice }}</span>
+            <span class="discount-badge" v-if="discountPercent">-{{ discountPercent }}% OFF</span>
           </div>
           <p v-if="pc.showSalesCount !== false" class="sales">已售 {{ product.sales }} 件</p>
-          <p class="stock">库存: {{ product.stock }}</p>
+          <p class="stock">
+            <el-icon :size="14"><CircleCheckFilled /></el-icon>
+            {{ product.stock > 0 ? `库存: ${product.stock} 件` : '暂时缺货' }}
+          </p>
           <p class="description">{{ product.description }}</p>
           <div class="actions">
-            <el-input-number v-model="quantity" :min="1" :max="product.stock" size="large" />
-            <el-button type="primary" size="large" @click="addToCart">加入购物车</el-button>
-            <el-button type="danger" size="large" @click="buyNow">立即购买</el-button>
+            <div class="quantity-wrap">
+              <span class="quantity-label">数量</span>
+              <el-input-number v-model="quantity" :min="1" :max="product.stock" size="large" controls-position="right" />
+            </div>
+            <el-button type="primary" size="large" class="add-cart-btn" @click="addToCart">
+              <el-icon :size="18"><ShoppingCart /></el-icon>
+              加入购物车
+            </el-button>
+            <el-button type="danger" size="large" class="buy-now-btn" @click="buyNow">立即购买</el-button>
           </div>
           <div class="share" v-if="pc.showShareButtons !== false">
             <span>分享：</span>
             <el-button circle size="small" @click="copyLink"><el-icon><Share /></el-icon></el-button>
+            <el-button circle size="small" @click="copyLink"><el-icon><Link /></el-icon></el-button>
           </div>
         </div>
       </div>
 
       <div class="related" v-if="pc.showRelatedProducts !== false && relatedProducts.length">
-        <h2 class="section-title">相关推荐</h2>
+        <h2 class="section-title">You May Also Like</h2>
         <div class="related-grid">
           <div class="product-card" v-for="p in relatedProducts" :key="p.id" @click="$router.push(`/product/${p.id}`)">
             <div class="product-image">
@@ -58,13 +87,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getProductDetail, getProducts } from '../../api/product'
 import { usePageConfig } from '../../composables/usePageConfig'
 import { useCartStore } from '../../stores/cart'
 import { ElMessage } from 'element-plus'
-import { Share } from '@element-plus/icons-vue'
+import { Share, Link, ShoppingCart, CircleCheckFilled, VideoCameraFilled } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -74,11 +103,70 @@ const { config: pc } = usePageConfig('PRODUCT_DETAIL')
 const product = ref(null)
 const quantity = ref(1)
 const relatedProducts = ref([])
+const currentMedia = ref('')
+
+const allMedia = computed(() => {
+  if (!product.value) return []
+  const items = []
+  const seen = new Set()
+  function add(url, type) {
+    if (!url || seen.has(url)) return
+    seen.add(url)
+    // Determine actual type from extension
+    let actualType = type
+    if (/\.mp4$/i.test(url)) actualType = 'video'
+    else if (/\.gif$/i.test(url)) actualType = 'gif'
+    else actualType = 'image'
+    items.push({ url, type: actualType })
+  }
+  // Priority: videos first, then gifs, then static images
+  if (product.value.videos) {
+    try {
+      const videos = typeof product.value.videos === 'string' ? JSON.parse(product.value.videos) : product.value.videos
+      videos.forEach(url => add(url, 'video'))
+    } catch {}
+  }
+  if (product.value.images) {
+    try {
+      const extra = typeof product.value.images === 'string' ? JSON.parse(product.value.images) : product.value.images
+      extra.forEach(url => add(url, 'image'))
+    } catch {}
+  }
+  if (product.value.coverImage) add(product.value.coverImage, 'image')
+  return items
+})
+
+function isVideo(url) { return url && /\.mp4$/i.test(url) }
+
+const discountPercent = computed(() => {
+  if (!product.value?.originalPrice || !product.value?.price) return null
+  const orig = parseFloat(product.value.originalPrice)
+  const now = parseFloat(product.value.price)
+  if (orig <= now) return null
+  return Math.round((1 - now / orig) * 100)
+})
 
 onMounted(async () => {
   try {
     const res = await getProductDetail(route.params.id)
     product.value = res.data
+    // Set initial media: first video > first gif > first image > coverImage
+    const p = res.data
+    let best = ''
+    if (p.videos) {
+      try {
+        const videos = typeof p.videos === 'string' ? JSON.parse(p.videos) : p.videos
+        if (videos.length) best = videos[0]
+      } catch {}
+    }
+    if (!best && p.images) {
+      try {
+        const imgs = typeof p.images === 'string' ? JSON.parse(p.images) : p.images
+        if (imgs.length) best = imgs[0]
+      } catch {}
+    }
+    if (!best) best = p.coverImage || ''
+    currentMedia.value = best
   } catch {}
 
   if (pc.value.showRelatedProducts !== false) {
@@ -111,37 +199,245 @@ function copyLink() {
 
 <style scoped>
 .container { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
-.breadcrumb { margin-bottom: 20px; }
-.detail-main { display: flex; gap: 48px; }
-.detail-gallery { flex: 0 0 460px; }
-.gallery-main { width: 460px; height: 460px; background: #f5f5f5; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-.gallery-main img { width: 100%; height: 100%; object-fit: contain; }
-.gallery-placeholder { font-size: 120px; color: #00676b; font-weight: bold; }
-.detail-info { flex: 1; }
-.detail-info h1 { font-size: 24px; margin-bottom: 20px; color: #333; }
-.detail-price { display: flex; align-items: baseline; gap: 12px; margin-bottom: 16px; }
-.price-now { color: #e74c3c; font-size: 28px; font-weight: bold; }
-.price-old { font-size: 16px; color: #bbb; text-decoration: line-through; }
-.sales, .stock { color: #666; margin-bottom: 10px; font-size: 14px; }
-.description { color: #555; line-height: 1.8; margin: 16px 0 24px; }
-.actions { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; }
-.share { display: flex; align-items: center; gap: 8px; color: #999; font-size: 13px; margin-top: 20px; }
+.breadcrumb { margin-bottom: 24px; }
 
-.related { margin-top: 60px; }
-.section-title { text-align: center; font-size: 24px; margin-bottom: 24px; color: #333; }
-.related-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-.product-card { background: #fff; border-radius: 8px; overflow: hidden; cursor: pointer; transition: all 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
-.product-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
-.product-image { height: 180px; background: #f0f2f5; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-.product-image img { width: 100%; height: 100%; object-fit: cover; }
-.image-placeholder { font-size: 48px; color: #00676b; font-weight: bold; }
-.product-info { padding: 12px; }
-.product-info h4 { font-size: 14px; margin: 0 0 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.detail-main { display: flex; gap: 48px; }
+.detail-gallery { flex: 0 0 480px; }
+.gallery-main {
+  width: 480px;
+  height: 480px;
+  background: #f8f8f8;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid #f0f0f0;
+}
+.gallery-main img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: opacity 0.3s;
+}
+.gallery-placeholder {
+  font-size: 120px;
+  color: #00676b;
+  font-weight: bold;
+}
+.gallery-thumbs {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+.thumb-item {
+  width: 64px;
+  height: 64px;
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: border-color 0.2s;
+  background: #f5f5f5;
+}
+.thumb-item.active {
+  border-color: #00676b;
+}
+.thumb-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.thumb-video {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+.thumb-video video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.thumb-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #fff;
+  background: rgba(0,0,0,0.5);
+  border-radius: 50%;
+  padding: 4px;
+}
+.thumb-gif-badge {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  background: rgba(0,103,107,0.85);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+.gallery-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+}
+
+.detail-info { flex: 1; }
+.detail-info h1 {
+  font-size: 24px;
+  margin: 0 0 20px;
+  color: #222;
+  line-height: 1.3;
+}
+.detail-price {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+.price-label {
+  font-size: 13px;
+  color: #999;
+  width: 100%;
+  margin-bottom: 2px;
+}
+.price-now { color: #e74c3c; font-size: 30px; font-weight: bold; }
+.price-old { font-size: 17px; color: #bbb; text-decoration: line-through; }
+.discount-badge {
+  background: #e74c3c;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 4px;
+}
+.sales { color: #888; margin-bottom: 8px; font-size: 14px; }
+.stock {
+  color: #4caf50;
+  margin-bottom: 12px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.description {
+  color: #555;
+  line-height: 1.8;
+  margin: 18px 0 24px;
+  font-size: 14px;
+}
+.actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.quantity-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.quantity-label { font-size: 14px; color: #666; }
+.add-cart-btn, .buy-now-btn {
+  padding: 12px 24px;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 8px;
+}
+.share {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #999;
+  font-size: 13px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.related { margin-top: 64px; }
+.section-title {
+  text-align: center;
+  font-size: 24px;
+  margin-bottom: 28px;
+  color: #333;
+  position: relative;
+}
+.section-title::after {
+  content: '';
+  display: block;
+  width: 50px;
+  height: 3px;
+  background: #00676b;
+  margin: 12px auto 0;
+  border-radius: 2px;
+}
+.related-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+.product-card {
+  background: #fff;
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  border: 1px solid #f0f0f0;
+}
+.product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
+.product-image {
+  height: 200px;
+  background: #f7f8f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.product-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s;
+}
+.product-card:hover .product-image img {
+  transform: scale(1.05);
+}
+.image-placeholder {
+  font-size: 48px;
+  color: #00676b;
+  font-weight: bold;
+}
+.product-info { padding: 12px 14px; }
+.product-info h4 {
+  font-size: 14px;
+  margin: 0 0 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #333;
+}
+.product-info .price-now {
+  font-size: 16px;
+}
 
 @media (max-width: 768px) {
-  .detail-main { flex-direction: column; }
+  .detail-main { flex-direction: column; gap: 24px; }
   .detail-gallery { flex: 0; }
-  .gallery-main { width: 100%; height: 300px; }
+  .gallery-main { width: 100%; height: 340px; }
   .related-grid { grid-template-columns: repeat(2, 1fr); }
+  .actions { flex-direction: column; align-items: stretch; }
+  .add-cart-btn, .buy-now-btn { width: 100%; }
 }
 </style>
