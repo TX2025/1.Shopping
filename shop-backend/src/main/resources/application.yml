@@ -26,7 +26,8 @@ file:
 app:
   jwt:
     secret: c2hvcC1tYWxsLWp3dC1zZWNyZXQta2V5LWZvci1zcHJpbmctYm9vdC1hcHBsaWNhdGlvbi0yMDI0
-    expiration: 86400000
+    access-expiration: 900000
+    refresh-expiration: 604800000
 
 logging:
   level:

@@ -38,5 +38,11 @@ export const useCartStore = defineStore('cart', () => {
     items.value = []
   }
 
-  return { items, totalCount, totalAmount, checkedItems, fetchCart, addToCart, updateQuantity, removeItem, clearCart }
+  async function batchRemove(ids) {
+    if (!ids || ids.length === 0) return
+    await Promise.all(ids.map(id => request.delete(`/cart/${id}`)))
+    await fetchCart()
+  }
+
+  return { items, totalCount, totalAmount, checkedItems, fetchCart, addToCart, updateQuantity, removeItem, batchRemove, clearCart }
 })

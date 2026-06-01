@@ -11,4 +11,7 @@ public interface ProductService {
     Product update(Long id, Product product);
     void delete(Long id);
     void updateStatus(Long id, String status);
+    PageResult<Product> adminListByCategory(Long categoryId, String keyword, String status, int page, int size);
+    void batchMoveCategory(java.util.List<Long> ids, Long targetCategoryId);
+    void batchDelete(java.util.List<Long> ids);
 }

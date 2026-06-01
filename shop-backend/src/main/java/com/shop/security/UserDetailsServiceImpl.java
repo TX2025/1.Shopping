@@ -1,5 +1,6 @@
 package com.shop.security;
 
+import com.shop.common.Constants;
 import com.shop.entity.User;
 import com.shop.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,22 +22,21 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("用户不存在: " + username));
-        return new org.springframework.security.core.userdetails.User(
-                user.getId().toString(),
-                user.getPassword(),
-                user.getStatus().equals("ACTIVE"),
-                true, true, true,
-                Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole()))
-        );
+        return buildUserDetails(user);
     }
 
     public UserDetails loadUserById(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UsernameNotFoundException("用户不存在: " + userId));
+        return buildUserDetails(user);
+    }
+
+    private UserDetails buildUserDetails(User user) {
+        boolean enabled = Constants.USER_STATUS_ACTIVE.equals(user.getStatus());
         return new org.springframework.security.core.userdetails.User(
                 user.getId().toString(),
                 user.getPassword(),
-                user.getStatus().equals("ACTIVE"),
+                enabled,
                 true, true, true,
                 Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole()))
         );

@@ -39,8 +39,13 @@
       </div>
 
       <div v-if="cart.items.length" class="cart-footer">
-        <span>合计: <span class="total-price">¥{{ cart.totalAmount }}</span></span>
-        <el-button type="danger" size="large" @click="$router.push('/checkout')">去结算</el-button>
+        <el-button type="danger" plain @click="handleBatchRemove" :disabled="!cart.checkedItems.length">
+          批量删除 {{ cart.checkedItems.length ? '(' + cart.checkedItems.length + ')' : '' }}
+        </el-button>
+        <span class="footer-right">
+          <span>合计: <span class="total-price">¥{{ cart.totalAmount }}</span></span>
+          <el-button type="danger" size="large" @click="$router.push('/checkout')">去结算</el-button>
+        </span>
       </div>
     </div>
   </div>
@@ -68,6 +73,17 @@ function applyCoupon() {
   ElMessage.info('优惠码功能即将上线')
   couponCode.value = ''
 }
+
+async function handleBatchRemove() {
+  if (!cart.checkedItems.length) {
+    ElMessage.warning('请先选择要删除的商品')
+    return
+  }
+  try {
+    await cart.batchRemove(cart.checkedItems)
+    ElMessage.success('已删除选中商品')
+  } catch {}
+}
 </script>
 
 <style scoped>
@@ -79,6 +95,7 @@ function applyCoupon() {
 .cart-image img { width: 100%; height: 100%; object-fit: cover; }
 .image-placeholder { font-size: 22px; color: #00676b; }
 .coupon-bar { display: flex; gap: 8px; margin-top: 16px; }
-.cart-footer { display: flex; justify-content: flex-end; align-items: center; gap: 20px; margin-top: 20px; padding: 16px; background: #fff; border-radius: 4px; }
+.cart-footer { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-top: 20px; padding: 16px; background: #fff; border-radius: 4px; }
+.footer-right { display: flex; align-items: center; gap: 20px; }
 .total-price { color: #e74c3c; font-size: 22px; font-weight: bold; }
 </style>

@@ -3,7 +3,10 @@
     <h2>{{ isEdit ? '编辑产品' : '新增产品' }}</h2>
     <el-card style="max-width:800px;margin-top:16px">
       <el-form :model="form" :rules="rules" ref="formRef" label-width="110px">
-        <el-form-item label="产品名称" prop="name"><el-input v-model="form.name" /></el-form-item>
+        <el-row :gutter="20">
+          <el-col :span="16"><el-form-item label="产品名称" prop="name"><el-input v-model="form.name" /></el-form-item></el-col>
+          <el-col :span="8"><el-form-item label="SKU" prop="sku"><el-input v-model="form.sku" placeholder="如 BT-EAR-001" /></el-form-item></el-col>
+        </el-row>
         <el-form-item label="描述" prop="description"><el-input v-model="form.description" type="textarea" :rows="3" /></el-form-item>
         <el-row :gutter="20">
           <el-col :span="12">
@@ -106,7 +109,7 @@ const formRef = ref(null)
 const saving = ref(false)
 const categories = ref([])
 const form = reactive({
-  name: '', description: '', price: '', originalPrice: '', stock: 0, categoryId: null,
+  name: '', sku: '', description: '', price: '', originalPrice: '', stock: 0, categoryId: null,
   coverImage: '', status: 'ON', images: [], videos: [],
 })
 const rules = {
@@ -156,13 +159,15 @@ function beforeUploadVideo(file) {
 }
 
 function onCoverUpload(res) {
-  if (res.url) form.coverImage = res.url
+  const url = res.data?.url || res.url
+  if (url) form.coverImage = url
 }
 
 function onImageUpload(res, file) {
-  if (res.url) {
+  const url = res.data?.url || res.url
+  if (url) {
     if (!form.images) form.images = []
-    form.images.push(res.url)
+    form.images.push(url)
   }
 }
 
@@ -172,9 +177,10 @@ function onImageRemove(file) {
 }
 
 function onVideoUpload(res, file) {
-  if (res.url) {
+  const url = res.data?.url || res.url
+  if (url) {
     if (!form.videos) form.videos = []
-    form.videos.push(res.url)
+    form.videos.push(url)
   }
 }
 
@@ -199,7 +205,7 @@ onMounted(async () => {
       const p = (res.data?.list || []).find(p => p.id == route.params.id)
       if (p) {
         Object.assign(form, {
-          name: p.name, description: p.description || '',
+          name: p.name, sku: p.sku || '', description: p.description || '',
           price: p.price, originalPrice: p.originalPrice || '',
           stock: p.stock, categoryId: p.categoryId,
           coverImage: p.coverImage || '', status: p.status,
@@ -224,6 +230,7 @@ async function submit() {
   try {
     const data = {
       ...form,
+      sku: form.sku || null,
       price: parseFloat(form.price),
       originalPrice: parseFloat(form.originalPrice) || null,
       images: form.images?.length ? JSON.stringify(form.images) : null,

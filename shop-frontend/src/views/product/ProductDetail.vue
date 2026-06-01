@@ -94,12 +94,14 @@ import { useRoute, useRouter } from 'vue-router'
 import { getProductDetail, getProducts } from '../../api/product'
 import { usePageConfig } from '../../composables/usePageConfig'
 import { useCartStore } from '../../stores/cart'
+import { useAuthStore } from '../../stores/auth'
 import { ElMessage } from 'element-plus'
 import { Share, Link, ShoppingCart, CircleCheckFilled, VideoCameraFilled } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
 const cart = useCartStore()
+const auth = useAuthStore()
 const { config: pc } = usePageConfig('PRODUCT_DETAIL')
 
 const product = ref(null)
@@ -234,7 +236,20 @@ async function loadProduct(id) {
   if (allMedia.value.length > 1) startAutoTimer()
 }
 
-onMounted(() => loadProduct(route.params.id))
+onMounted(() => {
+  loadProduct(route.params.id)
+  // auto-add after login redirect
+  const pending = sessionStorage.getItem('pendingAddToCart')
+  if (pending) {
+    sessionStorage.removeItem('pendingAddToCart')
+    try {
+      const { productId, qty } = JSON.parse(pending)
+      if (productId === Number(route.params.id)) {
+        addToCartDirect(productId, qty)
+      }
+    } catch {}
+  }
+})
 
 watch(() => route.params.id, (newId) => {
   if (newId) loadProduct(newId)
@@ -244,9 +259,22 @@ onBeforeUnmount(() => stopAutoTimer())
 
 async function addToCart() {
   if (!product.value) return
+  if (!auth.isLoggedIn) {
+    sessionStorage.setItem('pendingAddToCart', JSON.stringify({
+      productId: product.value.id,
+      qty: quantity.value
+    }))
+    router.push('/login?redirect=' + encodeURIComponent(route.fullPath))
+    return
+  }
+  await addToCartDirect(product.value.id, quantity.value)
+}
+
+async function addToCartDirect(productId, qty) {
   try {
-    await cart.addToCart(product.value.id, quantity.value)
+    await cart.addToCart(productId, qty)
     ElMessage.success('已添加到购物车')
+    router.push('/cart')
   } catch {}
 }
 

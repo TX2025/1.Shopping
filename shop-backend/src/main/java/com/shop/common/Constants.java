@@ -15,6 +15,21 @@ public class Constants {
     public static final String USER_STATUS_ACTIVE = "ACTIVE";
     public static final String USER_STATUS_DISABLED = "DISABLED";
 
+    // Login log status
+    public static final String LOGIN_LOG_SUCCESS = "SUCCESS";
+    public static final String LOGIN_LOG_FAIL_WRONG_PWD = "FAIL_WRONG_PWD";
+    public static final String LOGIN_LOG_FAIL_NOT_FOUND = "FAIL_NOT_FOUND";
+    public static final String LOGIN_LOG_FAIL_DISABLED = "FAIL_DISABLED";
+    public static final String LOGIN_LOG_FAIL_LOCKED = "FAIL_LOCKED";
+
+    public static final int LOGIN_MAX_FAIL_COUNT = 5;
+    public static final int LOGIN_LOCK_MINUTES = 15;
+
+    // SMS code
+    public static final String SMS_TYPE_REGISTER = "REGISTER";
+    public static final String SMS_TYPE_LOGIN = "LOGIN";
+    public static final String SMS_TYPE_RESET_PWD = "RESET_PWD";
+
     // ========== Site Config Keys ==========
     public static final String SITE_CONFIG_PROMO_BAR_ENABLED = "promo_bar_enabled";
     public static final String SITE_CONFIG_PROMO_BAR_MESSAGES = "promo_bar_messages";

@@ -34,6 +34,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
         try {
             var claims = jwtUtils.parseToken(token);
+            if (!"access".equals(claims.get("type"))) {
+                response.setContentType("application/json;charset=UTF-8");
+                response.setStatus(401);
+                response.getWriter().write(objectMapper.writeValueAsString(
+                        ApiResponse.error(401, "Token类型错误")));
+                return;
+            }
             Long userId = Long.parseLong(claims.getSubject());
             var userDetails = userDetailsService.loadUserById(userId);
             var auth = new UsernamePasswordAuthenticationToken(

@@ -7,6 +7,17 @@ const request = axios.create({
   timeout: 15000,
 })
 
+let isRefreshing = false
+let refreshQueue = []
+
+function processQueue(error, token) {
+  refreshQueue.forEach(({ resolve, reject }) => {
+    if (error) reject(error)
+    else resolve(token)
+  })
+  refreshQueue = []
+}
+
 request.interceptors.request.use((config) => {
   const token = localStorage.getItem('token')
   if (token) {
@@ -24,13 +35,64 @@ request.interceptors.response.use(
     }
     return data
   },
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
-      router.push('/login')
-      ElMessage.error('登录已过期，请重新登录')
-    } else if (error.response?.data?.message) {
+  async (error) => {
+    const originalRequest = error.config
+    const status = error.response?.status
+
+    // 401 (token expired/invalid) → try refresh
+    if (status === 401 && !originalRequest._retry) {
+      const refreshToken = localStorage.getItem('refreshToken')
+      if (refreshToken) {
+        originalRequest._retry = true
+        if (!isRefreshing) {
+          isRefreshing = true
+          try {
+            const res = await axios.post('/api/auth/refresh', { refreshToken })
+            const d = res.data.data
+            localStorage.setItem('token', d.accessToken)
+            localStorage.setItem('refreshToken', d.refreshToken)
+            localStorage.setItem('user', JSON.stringify({
+              id: d.userId, username: d.username, role: d.role
+            }))
+            processQueue(null, d.accessToken)
+            originalRequest.headers.Authorization = `Bearer ${d.accessToken}`
+            return request(originalRequest)
+          } catch (refreshError) {
+            processQueue(refreshError, null)
+            localStorage.removeItem('token')
+            localStorage.removeItem('refreshToken')
+            localStorage.removeItem('user')
+            router.push('/login?redirect=' + encodeURIComponent(router.currentRoute.value.fullPath))
+            ElMessage.error('登录已过期，请重新登录')
+            return Promise.reject(refreshError)
+          } finally {
+            isRefreshing = false
+          }
+        } else {
+          return new Promise((resolve, reject) => {
+            refreshQueue.push({
+              resolve: (token) => {
+                originalRequest.headers.Authorization = `Bearer ${token}`
+                resolve(request(originalRequest))
+              },
+              reject,
+            })
+          })
+        }
+      } else {
+        router.push('/login?redirect=' + encodeURIComponent(router.currentRoute.value.fullPath))
+        return Promise.reject(error)
+      }
+    }
+
+    // 403 (authenticated endpoint without token) → redirect to login
+    if (status === 403) {
+      router.push('/login?redirect=' + encodeURIComponent(router.currentRoute.value.fullPath))
+      ElMessage.warning('请先登录')
+      return Promise.reject(error)
+    }
+
+    if (error.response?.data?.message) {
       ElMessage.error(error.response.data.message)
     } else {
       ElMessage.error('网络错误')

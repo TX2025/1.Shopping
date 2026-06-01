@@ -4,6 +4,8 @@ import com.shop.common.ApiResponse;
 import com.shop.common.PageResult;
 import com.shop.entity.Product;
 import com.shop.service.ProductService;
+import com.shop.dto.request.BatchDeleteRequest;
+import com.shop.dto.request.BatchMoveRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -41,6 +43,28 @@ public class AdminProductController {
     @PutMapping("/{id}/status")
     public ApiResponse<Void> updateStatus(@PathVariable Long id, @RequestParam String status) {
         productService.updateStatus(id, status);
+        return ApiResponse.success();
+    }
+
+    @GetMapping("/by-category")
+    public ApiResponse<PageResult<Product>> listByCategory(
+            @RequestParam Long categoryId,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ApiResponse.success(productService.adminListByCategory(categoryId, keyword, status, page, size));
+    }
+
+    @PutMapping("/batch-move")
+    public ApiResponse<Void> batchMove(@RequestBody BatchMoveRequest body) {
+        productService.batchMoveCategory(body.getIds(), body.getTargetCategoryId());
+        return ApiResponse.success();
+    }
+
+    @PostMapping("/batch-delete")
+    public ApiResponse<Void> batchDelete(@RequestBody BatchDeleteRequest body) {
+        productService.batchDelete(body.getIds());
         return ApiResponse.success();
     }
 }

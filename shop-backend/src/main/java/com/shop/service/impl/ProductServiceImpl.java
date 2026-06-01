@@ -11,6 +11,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -62,6 +64,7 @@ public class ProductServiceImpl implements ProductService {
                 .orElseThrow(() -> new BusinessException(404, "商品不存在"));
         existing.setName(product.getName());
         existing.setDescription(product.getDescription());
+        existing.setSku(product.getSku());
         existing.setPrice(product.getPrice());
         existing.setOriginalPrice(product.getOriginalPrice());
         existing.setStock(product.getStock());
@@ -83,5 +86,37 @@ public class ProductServiceImpl implements ProductService {
                 .orElseThrow(() -> new BusinessException(404, "商品不存在"));
         product.setStatus(status);
         productRepository.save(product);
+    }
+
+    @Override
+    public PageResult<Product> adminListByCategory(Long categoryId, String keyword, String status, int page, int size) {
+        PageRequest pr = PageRequest.of(page - 1, size, Sort.by("createTime").descending());
+        String kw = (keyword != null && !keyword.isBlank()) ? keyword : null;
+        String st = (status != null && !status.isBlank()) ? status : null;
+        Page<Product> result;
+        if (st != null && kw != null) {
+            result = productRepository.findByCategoryIdAndStatusAndKeyword(categoryId, st, kw, pr);
+        } else if (st != null) {
+            result = productRepository.findByCategoryIdAndStatus(categoryId, st, pr);
+        } else if (kw != null) {
+            result = productRepository.findByCategoryIdAndKeyword(categoryId, kw, pr);
+        } else {
+            result = productRepository.findByCategoryId(categoryId, pr);
+        }
+        return PageResult.of(result.getContent(), result.getTotalElements(), page, size);
+    }
+
+    @Override
+    @Transactional
+    public void batchMoveCategory(List<Long> ids, Long targetCategoryId) {
+        List<Product> products = productRepository.findAllById(ids);
+        products.forEach(p -> p.setCategoryId(targetCategoryId));
+        productRepository.saveAll(products);
+    }
+
+    @Override
+    @Transactional
+    public void batchDelete(List<Long> ids) {
+        productRepository.deleteAllById(ids);
     }
 }

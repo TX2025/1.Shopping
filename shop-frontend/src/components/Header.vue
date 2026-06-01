@@ -69,7 +69,7 @@ const router = useRouter()
 const auth = useAuthStore()
 const cart = useCartStore()
 const keyword = ref('')
-const cartTotal = ref(0)
+const cartTotal = computed(() => auth.isLoggedIn ? cart.totalCount : 0)
 const siteName = ref('MyShop')
 
 const { config } = useSiteConfig()
@@ -83,7 +83,7 @@ onMounted(async () => {
     }
   } catch {}
   if (auth.isLoggedIn) {
-    try { await cart.fetchCart(); cartTotal.value = cart.totalCount } catch {}
+    try { await cart.fetchCart() } catch {}
   }
 })
 

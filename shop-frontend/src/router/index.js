@@ -32,6 +32,9 @@ const routes = [
       { path: 'settings/site', name: 'SiteSettings', component: () => import('../views/admin/SiteSettings.vue') },
       { path: 'settings/pages', name: 'PageSettings', component: () => import('../views/admin/PageSettings.vue') },
       { path: 'settings/marketing', name: 'MarketingSettings', component: () => import('../views/admin/MarketingSettings.vue') },
+      { path: 'service/shipping', name: 'ShippingService', component: () => import('../views/admin/ShippingService.vue') },
+      { path: 'service/aftersales', name: 'AfterSalesService', component: () => import('../views/admin/AfterSalesService.vue') },
+      { path: 'service/inquiries', name: 'InquiryManage', component: () => import('../views/admin/InquiryManage.vue') },
     ],
   },
 ]
