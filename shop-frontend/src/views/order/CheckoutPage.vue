@@ -4,6 +4,7 @@
       <h2>确认订单</h2>
       <p v-if="pageConfig.instructionText" class="instruction">{{ pageConfig.instructionText }}</p>
 
+      <!-- Shipping Address -->
       <el-card class="section">
         <template #header>收货地址</template>
         <div v-if="!addresses.length" style="padding:20px;text-align:center">
@@ -11,13 +12,14 @@
           <el-button type="primary" @click="showAddAddress = true">+ 新增收货地址</el-button>
         </div>
         <el-radio-group v-else v-model="selectedAddress">
-          <el-radio v-for="addr in addresses" :key="addr.id" :value="addr.id" border style="margin: 0 12px 12px 0">
+          <el-radio v-for="addr in addresses" :key="addr.id" :value="addr.id" border style="margin:0 12px 12px 0">
             {{ addr.receiverName }} {{ addr.receiverPhone }} {{ addr.province }}{{ addr.city }}{{ addr.district }} {{ addr.detail }}
           </el-radio>
         </el-radio-group>
         <el-button v-if="addresses.length" style="margin-top:8px" @click="showAddAddress = true">+ 新增地址</el-button>
       </el-card>
 
+      <!-- Order Items -->
       <el-card class="section">
         <template #header>订单明细</template>
         <div v-for="item in cart.items" :key="item.id" class="order-item">
@@ -27,6 +29,30 @@
         <div class="order-total">合计: ¥{{ cart.totalAmount }}</div>
       </el-card>
 
+      <!-- Shipping Method -->
+      <el-card class="section" v-if="shippingMethods.length">
+        <template #header>配送方式</template>
+        <el-radio-group v-model="selectedShipping">
+          <el-radio v-for="m in shippingMethods" :key="m.id" :value="m.id" border style="margin:0 12px 12px 0">
+            <span style="font-weight:500">{{ m.name }}</span>
+            <span style="color:#909399;font-size:12px;margin-left:8px">{{ m.region }}</span>
+            <span style="color:#e67e22;font-weight:600;margin-left:8px">{{ Number(m.fee)===0?'免费':'¥'+Number(m.fee).toFixed(2) }}</span>
+            <span style="color:#909399;font-size:11px;margin-left:4px" v-if="m.freeThreshold&&Number(m.freeThreshold)>0">满¥{{ Number(m.freeThreshold).toFixed(2) }}免运费</span>
+          </el-radio>
+        </el-radio-group>
+      </el-card>
+
+      <!-- Payment Method -->
+      <el-card class="section">
+        <template #header>支付方式</template>
+        <el-radio-group v-model="selectedPayment">
+          <el-radio value="wechat" border style="margin:0 12px 12px 0"><span style="color:#07c160;font-weight:600">微信支付</span></el-radio>
+          <el-radio value="alipay" border style="margin:0 12px 12px 0"><span style="color:#1677ff;font-weight:600">支付宝</span></el-radio>
+          <el-radio value="card" border style="margin:0 12px 12px 0"><span style="color:#e17055;font-weight:600">银行卡</span></el-radio>
+        </el-radio-group>
+      </el-card>
+
+      <!-- Remark -->
       <div class="remark">
         <el-input v-model="remark" placeholder="订单备注（选填）" />
       </div>
@@ -36,6 +62,7 @@
       </div>
     </div>
 
+    <!-- Add Address Dialog -->
     <el-dialog v-model="showAddAddress" title="新增地址" width="500px">
       <el-form :model="newAddress" label-width="80px">
         <el-form-item label="收货人"><el-input v-model="newAddress.receiverName" /></el-form-item>
@@ -45,10 +72,7 @@
         <el-form-item label="区"><el-input v-model="newAddress.district" /></el-form-item>
         <el-form-item label="详细地址"><el-input v-model="newAddress.detail" /></el-form-item>
       </el-form>
-      <template #footer>
-        <el-button @click="showAddAddress = false">取消</el-button>
-        <el-button type="primary" @click="saveAddress">保存</el-button>
-      </template>
+      <template #footer><el-button @click="showAddAddress = false">取消</el-button><el-button type="primary" @click="saveAddress">保存</el-button></template>
     </el-dialog>
   </div>
 </template>
@@ -58,66 +82,53 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCartStore } from '../../stores/cart'
 import { getAddresses, addAddress } from '../../api/user'
+import { getPublicShippingMethods } from '../../api/admin'
 import { createOrder } from '../../api/order'
-import { getPageConfig } from '../../api/admin'
 import { ElMessage } from 'element-plus'
 
-const router = useRouter()
 const cart = useCartStore()
+const router = useRouter()
 const addresses = ref([])
 const selectedAddress = ref(null)
+const selectedShipping = ref(null)
+const selectedPayment = ref('wechat')
+const shippingMethods = ref([])
 const remark = ref('')
 const showAddAddress = ref(false)
-const pageConfig = ref({ instructionText: '请在15分钟内完成支付' })
+const newAddress = ref({ receiverName:'', receiverPhone:'', province:'', city:'', district:'', detail:'' })
 
-const newAddress = ref({ receiverName: '', receiverPhone: '', province: '', city: '', district: '', detail: '' })
+const pageConfig = ref({ instructionText:'请确认订单信息后提交' })
 
-onMounted(async () => {
-  await cart.fetchCart()
-  if (!cart.items.length) { router.push('/cart'); return }
-  try {
-    const res = await getAddresses()
-    addresses.value = res.data || []
-    const def = addresses.value.find(a => a.isDefault)
-    if (def) selectedAddress.value = def.id
-    else if (addresses.value.length) selectedAddress.value = addresses.value[0].id
-  } catch {}
-  try {
-    const pr = await getPageConfig('PAYMENT')
-    if (pr.data?.configJson) pageConfig.value = { ...pageConfig.value, ...JSON.parse(pr.data.configJson) }
-  } catch {}
+onMounted(async ()=>{
+  try{ const r=await getAddresses(); addresses.value=r.data||[]; if(addresses.value.length) selectedAddress.value=addresses.value[0].id }catch{}
+  try{ const s=await getPublicShippingMethods(); shippingMethods.value=s.data||[]; if(shippingMethods.value.length) selectedShipping.value=shippingMethods.value[0].id }catch{}
 })
 
-async function saveAddress() {
-  try {
-    const addr = newAddress.value
-    if (!addr.receiverName || !addr.receiverPhone || !addr.detail) {
-      ElMessage.warning('请填写必填信息'); return
-    }
-    const res = await addAddress(addr)
-    addresses.value.push(res.data)
-    selectedAddress.value = res.data.id
-    showAddAddress.value = false
-    newAddress.value = { receiverName: '', receiverPhone: '', province: '', city: '', district: '', detail: '' }
-  } catch {}
+async function saveAddress(){
+  try{ await addAddress(newAddress.value); ElMessage.success('地址已保存'); showAddAddress.value=false
+    const r=await getAddresses(); addresses.value=r.data||[]; selectedAddress.value=addresses.value[addresses.value.length-1]?.id }catch{}
 }
 
-async function submitOrder() {
-  try {
-    const res = await createOrder({ addressId: selectedAddress.value, remark: remark.value })
-    ElMessage.success('下单成功')
-    router.push(`/thank-you?orderId=${res.data.id}&orderNo=${res.data.orderNo}`)
-  } catch {}
+async function submitOrder(){
+  if(!selectedAddress.value){ ElMessage.warning('请选择收货地址'); return }
+  try{
+    const addr=addresses.value.find(a=>a.id===selectedAddress.value)
+    const ship=shippingMethods.value.find(s=>s.id===selectedShipping.value)
+    await createOrder({ items:cart.items.map(i=>({productId:i.productId,quantity:i.quantity})), addressId:selectedAddress.value,
+      paymentMethod:selectedPayment.value, channel:'PC官网', remark:remark.value||undefined,
+      shippingMethod:ship?.name, shippingFee:ship?Number(ship.fee):0 })
+    ElMessage.success('订单提交成功'); cart.clearCart(); router.push('/thank-you')
+  }catch{}
 }
 </script>
 
 <style scoped>
-.container { max-width: 800px; margin: 30px auto; padding: 0 20px; }
-.container h2 { margin-bottom: 8px; }
-.instruction { color: #e6a23c; margin-bottom: 16px; background: #fdf6ec; padding: 8px 16px; border-radius: 4px; }
-.section { margin-bottom: 16px; }
-.order-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
-.order-total { text-align: right; margin-top: 12px; font-size: 18px; color: #f56c6c; font-weight: bold; }
-.remark { margin: 16px 0; }
-.submit-area { text-align: right; }
+.container{max-width:800px;margin:0 auto;padding:24px}
+h2{font-size:22px;margin-bottom:12px}
+.instruction{color:#909399;font-size:13px;margin-bottom:16px}
+.section{margin-bottom:16px}
+.order-item{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:14px}
+.order-total{text-align:right;font-size:18px;font-weight:700;color:#e17055;padding-top:12px}
+.remark{margin-bottom:20px}
+.submit-area{text-align:right}
 </style>

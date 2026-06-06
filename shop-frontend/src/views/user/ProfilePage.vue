@@ -8,6 +8,10 @@
           <el-form-item label="邮箱"><el-input v-model="form.email" /></el-form-item>
           <el-form-item label="手机号"><el-input v-model="form.phone" /></el-form-item>
           <el-form-item label="角色"><el-tag>{{ form.role === 'ADMIN' ? '管理员' : '普通用户' }}</el-tag></el-form-item>
+          <el-form-item label="等级">
+            <span v-if="form.level" class="level-badge" :class="'lv-'+form.level">{{ form.level }}会员</span>
+            <span v-else style="color:#909399">普通会员</span>
+          </el-form-item>
           <el-form-item>
             <el-button type="primary" @click="saveProfile">保存</el-button>
           </el-form-item>
@@ -86,5 +90,7 @@ async function saveAddress() {
 
 <style scoped>
 .container { max-width: 700px; margin: 30px auto; padding: 0 20px; }
+.level-badge { display:inline-block; padding:2px 10px; border-radius:10px; font-size:12px; font-weight:600 }
+.lv-普通{background:#f5f5f5;color:#909399}.lv-银牌{background:rgba(162,155,254,.12);color:#6c5ce7}.lv-金牌{background:rgba(253,203,110,.15);color:#d68910}.lv-钻石{background:rgba(116,185,255,.15);color:#2980b9}
 .address-item { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid #eee; }
 </style>

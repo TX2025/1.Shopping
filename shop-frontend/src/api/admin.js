@@ -19,6 +19,7 @@ export function getOrderStats() { return request.get('/admin/orders/stats') }
 
 export function getAdminUsers(params) { return request.get('/admin/users', { params }) }
 export function updateUserStatus(id, status) { return request.put(`/admin/users/${id}/status?status=${status}`) }
+export function getUserStats() { return request.get('/admin/users/stats') }
 
 export function getAdminCategories() { return request.get('/admin/categories') }
 export function getCategoryProductCounts() { return request.get('/admin/categories/product-counts') }
@@ -62,6 +63,15 @@ export function createInquiry(data) { return request.post('/admin/inquiries', da
 export function updateInquiry(id, data) { return request.put(`/admin/inquiries/${id}`, data) }
 export function deleteInquiry(id) { return request.delete(`/admin/inquiries/${id}`) }
 export function getInquiryStats() { return request.get('/admin/inquiries/stats') }
+
+// 营销活动
+export function getPromotions(status) { return request.get('/admin/promotions', { params: status ? { status } : {} }) }
+export function createPromotion(data) { return request.post('/admin/promotions', data) }
+export function updatePromotion(id, data) { return request.put(`/admin/promotions/${id}`, data) }
+export function deletePromotion(id) { return request.delete(`/admin/promotions/${id}`) }
+export function getPromotionStats() { return request.get('/admin/promotions/stats') }
+
+export function getPublicShippingMethods() { return request.get('/shipping-methods') }
 
 export function getSiteConfig() { return request.get('/site-config') }
 export function getPageConfig(type) { return request.get(`/page-config/${type}`) }

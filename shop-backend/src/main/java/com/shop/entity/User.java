@@ -36,6 +36,9 @@ public class User {
     @Builder.Default
     private String status = Constants.USER_STATUS_ACTIVE;
 
+    @Column(length = 20)
+    private String level;               // 会员等级: 普通/银牌/金牌/钻石
+
     @Column(length = 500)
     private String avatar;
 

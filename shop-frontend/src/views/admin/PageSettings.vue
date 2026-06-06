@@ -1,578 +1,233 @@
 <template>
-  <div class="page-settings">
-    <h2>页面布局设置</h2>
-    <el-tabs v-model="activeTab" style="margin-top:16px" @tab-change="switchTab">
-      <el-tab-pane v-for="page in pages" :key="page.type" :label="page.label" :name="page.type">
-        <el-card v-loading="loading">
+  <div class="pg-page">
+    <div class="page-header">
+      <div>
+        <h2>页面布局</h2>
+        <div class="page-subtitle">管理商城页面模板与组件布局</div>
+      </div>
+      <div class="page-header-actions">
+        <button class="btn btn-outline"><el-icon :size="14"><Download /></el-icon> 导出</button>
+        <button class="btn btn-primary" @click="openEdit('')"><el-icon :size="14"><Plus /></el-icon> 新增页面</button>
+      </div>
+    </div>
 
-          <!-- HOME: hero editor -->
-          <template v-if="activeTab === 'HOME'">
-            <div class="schema-form">
-              <el-form-item v-for="(field, key) in currentSchema" :key="key" :label="field.label" v-show="key !== 'hero_enabled' && key !== 'showcase_enabled' && key !== 'popular_enabled'">
-                <template v-if="field.type === 'boolean'">
-                  <el-switch v-model="formData[key]" />
-                </template>
-                <template v-else>
-                  <el-input v-model="formData[key]" />
-                </template>
-              </el-form-item>
-            </div>
+    <!-- KPI Strip -->
+    <div class="om-kpi-strip">
+      <div v-for="k in kpis" :key="k.label" class="om-kpi-card">
+        <div class="om-kpi-icon" :style="{background:k.bg,color:k.color}"><el-icon :size="17"><component :is="k.icon" /></el-icon></div>
+        <div class="om-kpi-body">
+          <div class="om-kpi-label">{{ k.label }}</div>
+          <div class="om-kpi-val" :style="{color:k.color}">{{ k.val }}</div>
+          <div class="om-kpi-sub">{{ k.sub }}</div>
+        </div>
+      </div>
+    </div>
 
-            <el-divider content-position="left">首页轮播设置</el-divider>
-
-            <el-form label-width="120px" size="small">
-              <el-form-item label="启用轮播">
-                <el-switch v-model="formData.hero_enabled" />
-              </el-form-item>
-              <el-form-item label="切换间隔(ms)">
-                <el-input-number v-model="heroInterval" :min="1000" :step="500" :max="30000" />
-                <span style="margin-left:8px;color:#999;font-size:12px">图片/GIF 切换间隔；视频播放完毕后才切换</span>
-              </el-form-item>
-              <el-form-item label="宽度">
-                <el-input v-model="formData.hero_width" placeholder="如 100% 或 1200" style="width:200px" />
-                <span style="margin-left:8px;color:#999;font-size:12px">支持 % 或 px</span>
-              </el-form-item>
-              <el-form-item label="高度(px)">
-                <el-input-number v-model="heroHeight" :min="200" :max="900" :step="20" />
-              </el-form-item>
-            </el-form>
-
-            <el-divider content-position="left">幻灯片</el-divider>
-
-            <div class="hero-slides-editor">
-              <div class="slide-card" v-for="(slide, idx) in heroSlides" :key="idx">
-                <div class="slide-header">
-                  <span class="slide-label">#{{ idx + 1 }}</span>
-                  <div class="slide-actions">
-                    <el-button size="small" :disabled="idx===0" @click="moveSlide(idx,-1)" :icon="ArrowUp" circle />
-                    <el-button size="small" :disabled="idx===heroSlides.length-1" @click="moveSlide(idx,1)" :icon="ArrowDown" circle />
-                    <el-button size="small" type="danger" @click="removeSlide(idx)" :icon="Delete" circle />
-                  </div>
+    <!-- Table Card -->
+    <div class="card">
+      <div class="card-body" style="padding:0">
+        <div class="pm-toolbar" style="padding:12px 16px;border-bottom:1px solid #e0e3e8">
+          <div class="pm-tab-group">
+            <button class="pm-tab" :class="{active:statusFilter==='all'}" @click="statusFilter='all'">全部 <span class="pm-tab-count">{{ pageList.length }}</span></button>
+            <button class="pm-tab" :class="{active:statusFilter==='published'}" @click="statusFilter='published'"><i class="tab-dot" style="background:#00b894;margin-right:3px"></i>已发布</button>
+            <button class="pm-tab" :class="{active:statusFilter==='draft'}" @click="statusFilter='draft'"><i class="tab-dot" style="background:#909399;margin-right:3px"></i>草稿</button>
+            <button class="pm-tab" :class="{active:statusFilter==='offline'}" @click="statusFilter='offline'"><i class="tab-dot" style="background:#e17055;margin-right:3px"></i>已下线</button>
+          </div>
+          <div class="pm-toolbar-right">
+            <div class="pm-search-wrap"><el-icon :size="12"><Search /></el-icon><input v-model="searchKeyword" placeholder="搜索页面..." /></div>
+          </div>
+        </div>
+        <el-table :data="filteredPages" stripe row-key="type" size="small">
+          <el-table-column label="页面名称" min-width="150">
+            <template #default="{row}">
+              <div style="display:flex;align-items:center;gap:8px">
+                <el-icon :size="16" color="#6c5ce7"><component :is="pageIcon(row.type)" /></el-icon>
+                <div>
+                  <div style="font-weight:500;font-size:13px">{{ row.label }}</div>
+                  <div style="font-size:11px;color:#909399">{{ pagePath(row.type) }}</div>
                 </div>
-                <el-row :gutter="16">
-                  <el-col :span="6">
-                    <div class="slide-preview" @click="triggerUpload(idx)">
-                      <video v-if="isVideo(slide.image)" :src="slide.image" muted class="slide-preview-media" />
-                      <img v-else-if="slide.image" :src="slide.image" class="slide-preview-media" />
-                      <div v-else class="slide-preview-empty"><el-icon :size="28"><Plus /></el-icon><span>上传媒体</span></div>
-                      <div class="slide-preview-type" v-if="slide.image">
-                        <el-tag size="small" :type="isVideo(slide.image)?'warning':''">{{ isVideo(slide.image)?'视频':isGif(slide.image)?'GIF':'图片' }}</el-tag>
-                      </div>
-                    </div>
-                    <input type="file" :ref="el => { if (el) uploadRefs[idx] = el }" accept="image/jpeg,image/png,image/gif,video/mp4" style="display:none" @change="e => handleUpload(e, idx)" />
-                    <el-button size="small" style="width:100%;margin-top:6px" @click="triggerUpload(idx)">选择文件</el-button>
-                  </el-col>
-                  <el-col :span="18">
-                    <el-form label-width="70px" size="small">
-                      <el-form-item label="媒体URL"><el-input v-model="slide.image" placeholder="图片/GIF/视频 URL" /></el-form-item>
-                      <el-form-item label="标题"><el-input v-model="slide.title" placeholder="叠加标题" /></el-form-item>
-                      <el-form-item label="链接"><el-input v-model="slide.link" placeholder="如 /products" /></el-form-item>
-                    </el-form>
-                  </el-col>
-                </el-row>
               </div>
-              <el-button style="margin-top:12px;width:100%" @click="addSlide" :icon="Plus" dashed>添加幻灯片</el-button>
-            </div>
-          </template>
-
-          <!-- POPULAR: showcase & popular products editor (uses HOME config) -->
-          <template v-else-if="activeTab === 'POPULAR'">
-            <el-form label-width="120px" size="small" style="margin-bottom:8px">
-              <el-form-item label="启用热门分类">
-                <el-switch v-model="formData.showcase_enabled" />
-              </el-form-item>
-              <el-form-item label="启用热门推荐">
-                <el-switch v-model="formData.popular_enabled" />
-              </el-form-item>
-            </el-form>
-
-            <el-divider content-position="left">热门分类设置</el-divider>
-            <div class="items-editor">
-              <div class="slide-card" v-for="(item, idx) in showcaseItems" :key="idx">
-                <div class="slide-header">
-                  <span class="slide-label">#{{ idx + 1 }}</span>
-                  <div class="slide-actions">
-                    <el-button size="small" :disabled="idx===0" @click="moveShowcaseItem(idx,-1)" :icon="ArrowUp" circle />
-                    <el-button size="small" :disabled="idx===showcaseItems.length-1" @click="moveShowcaseItem(idx,1)" :icon="ArrowDown" circle />
-                    <el-button size="small" type="danger" @click="removeShowcaseItem(idx)" :icon="Delete" circle />
-                  </div>
-                </div>
-                <el-row :gutter="16">
-                  <el-col :span="6">
-                    <div class="slide-preview" @click="triggerShowcaseUpload(idx)">
-                      <video v-if="isVideo(showcasePreview(idx))" :src="showcasePreview(idx)" muted class="slide-preview-media" />
-                      <img v-else-if="showcasePreview(idx)" :src="showcasePreview(idx)" class="slide-preview-media" />
-                      <div v-else class="slide-preview-empty"><el-icon :size="28"><Plus /></el-icon><span>上传封面</span></div>
-                    </div>
-                    <input type="file" :ref="el => { if (el) scUploadRefs[idx] = el }" accept="image/jpeg,image/png,image/gif,video/mp4" style="display:none" @change="e => handleShowcaseUpload(e, idx)" />
-                    <el-button size="small" style="width:100%;margin-top:6px" @click="triggerShowcaseUpload(idx)">上传封面</el-button>
-                  </el-col>
-                  <el-col :span="18">
-                    <el-form label-width="70px" size="small">
-                      <el-form-item label="分类">
-                        <el-select v-model="item.categoryId" placeholder="选择分类" filterable style="width:100%" @change="onShowcaseCategoryChange(idx)">
-                          <el-option v-for="c in allCategoryOptions" :key="c.id" :label="c.name" :value="c.id" />
-                        </el-select>
-                      </el-form-item>
-                      <el-form-item label="封面URL">
-                        <el-input v-model="item.coverImage" placeholder="留空则使用该分类首款产品封面" />
-                      </el-form-item>
-                      <el-form-item label="视频">
-                        <div style="display:flex;gap:8px">
-                          <el-input v-model="scVideoUrls[idx]" placeholder="输入视频URL" size="small" />
-                          <el-button size="small" @click="addShowcaseVideo(idx)">添加</el-button>
-                        </div>
-                        <div style="margin-top:4px">
-                          <el-tag v-for="(v, vi) in showcaseVideoList(idx)" :key="vi" closable @close="removeShowcaseVideo(idx, vi)" style="margin:2px" size="small">{{ v }}</el-tag>
-                        </div>
-                      </el-form-item>
-                    </el-form>
-                  </el-col>
-                </el-row>
+            </template>
+          </el-table-column>
+          <el-table-column label="路径" width="130">
+            <template #default="{row}"><code style="color:#6c5ce7;font-size:12px;background:#f5f7fa;padding:2px 6px;border-radius:4px">{{ pagePath(row.type) }}</code></template>
+          </el-table-column>
+          <el-table-column label="模板" width="90" align="center">
+            <template #default="{row}"><span style="font-size:12px;color:#909399">默认</span></template>
+          </el-table-column>
+          <el-table-column label="组件数" width="80" align="center">
+            <template #default="{row}"><span style="font-weight:600">{{ fieldCount(row) }}</span></template>
+          </el-table-column>
+          <el-table-column label="访问量" width="90" align="center">
+            <template #default="{row}"><span style="font-size:12px;color:#909399">-</span></template>
+          </el-table-column>
+          <el-table-column label="最后修改" width="120">
+            <template #default="{row}"><span style="font-size:12px;color:#909399">-</span></template>
+          </el-table-column>
+          <el-table-column label="状态" width="85" align="center">
+            <template #default="{row}"><span class="order-status-badge os-done">已发布</span></template>
+          </el-table-column>
+          <el-table-column label="操作" width="120" fixed="right" align="center">
+            <template #default="{row}">
+              <div class="om-actions">
+                <button class="om-action-btn" title="编辑" @click="openEdit(row.type)"><el-icon :size="13"><EditPen /></el-icon></button>
+                <button class="om-action-btn" title="预览"><el-icon :size="13"><View /></el-icon></button>
+                <button class="om-action-btn" title="设置"><el-icon :size="13"><Setting /></el-icon></button>
               </div>
-              <el-button style="margin-top:12px;width:100%" @click="addShowcaseItem" :icon="Plus" dashed>添加分类</el-button>
-            </div>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+    </div>
 
-            <el-divider content-position="left">热门推荐设置</el-divider>
-            <div class="items-editor">
-              <div class="slide-card" v-for="(item, idx) in popularItems" :key="idx">
-                <div class="slide-header">
-                  <span class="slide-label">#{{ idx + 1 }}</span>
-                  <div class="slide-actions">
-                    <el-button size="small" :disabled="idx===0" @click="movePopularItem(idx,-1)" :icon="ArrowUp" circle />
-                    <el-button size="small" :disabled="idx===popularItems.length-1" @click="movePopularItem(idx,1)" :icon="ArrowDown" circle />
-                    <el-button size="small" type="danger" @click="removePopularItem(idx)" :icon="Delete" circle />
-                  </div>
-                </div>
-                <el-form label-width="70px" size="small">
-                  <el-form-item label="商品">
-                    <el-select v-model="item.productId" placeholder="选择商品" filterable style="width:100%">
-                      <el-option v-for="p in allProductOptions" :key="p.id" :label="`#${p.id} ${p.name} (¥${p.price})`" :value="p.id" />
-                    </el-select>
-                  </el-form-item>
-                </el-form>
-              </div>
-              <el-button style="margin-top:12px;width:100%" @click="addPopularItem" :icon="Plus" dashed>添加商品</el-button>
-            </div>
-          </template>
-
-          <!-- FOOTER: footer editor -->
-          <template v-else-if="activeTab === 'FOOTER'">
-            <el-form label-width="140px" size="small">
-              <el-form-item label="关于文字">
-                <el-input v-model="formData.footer_about" type="textarea" :rows="2" />
-              </el-form-item>
-              <el-form-item label="订阅引导语">
-                <el-input v-model="formData.footer_subscribe_text" />
-              </el-form-item>
-              <el-form-item label="栏目列 (JSON)">
-                <el-input v-model="footerColumnsJson" type="textarea" :rows="8" placeholder='[{"title":"标题","links":[{"label":"名称","url":"#"}]}]' />
-              </el-form-item>
-              <el-form-item label="社交图标 (JSON)">
-                <el-input v-model="footerSocialJson" type="textarea" :rows="4" placeholder='[{"platform":"微信","url":"#","icon":"ChatDotSquare"}]' />
-              </el-form-item>
-              <el-form-item label="支付图标 (JSON)">
-                <el-input v-model="footerPaymentJson" type="textarea" :rows="4" placeholder='[{"name":"微信支付","icon":"Wallet"}]' />
-              </el-form-item>
-            </el-form>
-          </template>
-
-          <!-- Generic: schema form + JSON toggle -->
-          <template v-else>
-            <div class="schema-form" v-if="currentSchema && Object.keys(currentSchema).length">
-              <el-form-item v-for="(field, key) in currentSchema" :key="key" :label="field.label">
-                <template v-if="field.type === 'boolean'">
-                  <el-switch v-model="formData[key]" />
-                </template>
-                <template v-else-if="field.type === 'number'">
-                  <el-input-number v-model="formData[key]" :min="1" style="width:200px" />
-                </template>
-                <template v-else-if="field.type.startsWith('select:')">
-                  <el-select v-model="formData[key]" style="width:200px">
-                    <el-option v-for="opt in field.type.substring(7).split(',')" :key="opt" :label="opt" :value="opt" />
-                  </el-select>
-                </template>
-                <template v-else>
-                  <el-input v-model="formData[key]" />
-                </template>
-              </el-form-item>
-            </div>
-            <div style="margin-top:12px">
-              <el-button size="small" @click="toggleRaw">切换JSON编辑</el-button>
-            </div>
-          </template>
-
-          <!-- JSON editor (all tabs) -->
-          <template v-if="showRaw">
-            <div class="editor-header">
-              <span>编辑 {{ pages.find(p => p.type === activeTab)?.label }} 的 JSON 配置</span>
-              <el-button size="small" @click="resetPage">恢复默认</el-button>
-            </div>
-            <el-input v-model="editingJson" type="textarea" :rows="12" style="margin-top:12px;font-family:monospace" />
-          </template>
-
-          <el-button type="primary" @click="savePage" :loading="saving" style="margin-top:12px">保存</el-button>
-        </el-card>
-      </el-tab-pane>
-    </el-tabs>
+    <!-- Edit Dialog -->
+    <el-dialog v-model="dialogVisible" :title="editType ? '编辑页面布局' : '新增页面'" width="700px" destroy-on-close>
+      <template v-if="editType">
+        <div v-if="currentSchema">
+          <el-form v-loading="loading" label-width="100px" label-position="top">
+            <el-form-item v-for="(field, key) in currentSchema" :key="key" :label="field.label">
+              <template v-if="field.type === 'boolean'"><el-switch v-model="formData[key]" /></template>
+              <template v-else><el-input v-model="formData[key]" /></template>
+            </el-form-item>
+            <template v-if="editType==='HOME'">
+              <el-divider content-position="left">首页轮播设置</el-divider>
+              <el-form-item label="启用轮播"><el-switch v-model="formData.hero_enabled" /></el-form-item>
+              <el-form-item label="切换间隔(ms)"><el-input-number v-model="heroInterval" :min="1000" :step="500" :max="30000" /></el-form-item>
+              <el-divider content-position="left">首页模块开关</el-divider>
+              <el-form-item label="显示推荐商品"><el-switch v-model="formData.showcase_enabled" /></el-form-item>
+              <el-form-item label="显示热门商品"><el-switch v-model="formData.popular_enabled" /></el-form-item>
+            </template>
+          </el-form>
+        </div>
+        <el-empty v-else description="该页面暂无可配置项" :image-size="48" />
+      </template>
+      <template #footer>
+        <el-button @click="dialogVisible=false">取消</el-button>
+        <el-button type="primary" @click="savePage" :loading="saving">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch, reactive, computed } from 'vue'
-import { getPageConfigs, getPageConfigSchema, updatePageConfig, uploadFile, getAdminCategories, getAdminProducts } from '../../api/admin'
+import { ref, computed, onMounted } from 'vue'
+import { getPageConfigs, updatePageConfig } from '../../api/admin'
 import { ElMessage } from 'element-plus'
-import { Plus, ArrowUp, ArrowDown, Delete } from '@element-plus/icons-vue'
+import { Plus, Download, Search, EditPen, View, Setting, HomeFilled, ShoppingBag, Picture, ShoppingCartFull, CreditCard, CircleCheck, Files, TrendCharts } from '@element-plus/icons-vue'
 
-const defaults = {
-  HOME: '{"hero_enabled":true,"hero_slides":[{"image":"https://placehold.co/1920x500/00676b/ffffff?text=新品上市","link":"/products","title":"新品上市","sort":1},{"image":"https://placehold.co/1920x500/0a8f94/ffffff?text=限时特惠","link":"/products?sort=sales","title":"限时特惠","sort":2},{"image":"https://placehold.co/1920x500/2c3e50/ffffff?text=品质保证","link":"/products","title":"品质保证","sort":3}],"hero_interval":5000,"hero_width":"100%","hero_height":500,"showcase_enabled":true,"showcase_categories":[],"popular_enabled":true,"popular_products":[],"trust_enabled":true}',
-  PRODUCT_LIST: '{"displayMode":"grid","pageSize":20,"showSidebar":true,"showSalesCount":true,"showOriginalPrice":true,"showFilters":["category","price","keyword"],"defaultSort":"newest","sidebarPosition":"left"}',
-  PRODUCT_DETAIL: '{"showBreadcrumb":true,"showRelatedProducts":true,"relatedCount":4,"imageDisplayMode":"thumbnail","showSalesCount":true,"showShareButtons":true,"imageSwitchInterval":5}',
-  CART: '{"promotionText":"满99元免运费","showCouponInput":true,"showRelatedProducts":true,"showShippingEstimate":false}',
-  PAYMENT: '{"instructionText":"请在15分钟内完成支付","showOrderSummary":true}',
-  THANK_YOU: '{"message":"感谢您的购买！","subMessage":"我们会尽快为您发货","buttonText":"继续购物","buttonLink":"/products","autoRedirectSeconds":10}',
-  FOOTER: '{"footer_about":"MyShop 致力于为您提供优质的购物体验，汇聚全球好物，让生活更美好。","footer_columns":[{"title":"购物指南","links":[{"label":"如何下单","url":"#"},{"label":"支付方式","url":"#"},{"label":"配送说明","url":"#"}]},{"title":"售后服务","links":[{"label":"退换货政策","url":"#"},{"label":"退款流程","url":"#"},{"label":"投诉建议","url":"#"}]},{"title":"关于我们","links":[{"label":"公司介绍","url":"#"},{"label":"联系我们","url":"#"},{"label":"加入我们","url":"#"}]},{"title":"关注我们","links":[{"label":"微博","url":"#"},{"label":"微信公众号","url":"#"},{"label":"小红书","url":"#"}]}],"footer_subscribe_text":"订阅我们的资讯，获取最新优惠信息","footer_social":[{"platform":"微信","url":"#","icon":"ChatDotSquare"},{"platform":"微博","url":"#","icon":"Share"}],"footer_payment_icons":[{"name":"微信支付","icon":"Wallet"},{"name":"支付宝","icon":"Money"},{"name":"银联","icon":"CreditCard"}]}',
-}
+const activeTab=ref('HOME');const loading=ref(false);const saving=ref(false)
+const dialogVisible=ref(false);const editType=ref('')
+const statusFilter=ref('all');const searchKeyword=ref('')
+const formData=ref({hero_enabled:false,showcase_enabled:false,popular_enabled:false})
+const heroInterval=ref(3000)
+const currentSchema=ref(null)
+const savedConfigs=ref({})
 
 const pages = [
-  { type: 'HOME', label: '首页' }, { type: 'POPULAR', label: '热门推荐' },
-  { type: 'PRODUCT_LIST', label: '产品页' }, { type: 'PRODUCT_DETAIL', label: '产品详情页' },
-  { type: 'CART', label: '购物车页' }, { type: 'PAYMENT', label: '支付页' },
-  { type: 'THANK_YOU', label: '感谢页' }, { type: 'FOOTER', label: 'Footer' },
+  { type:'HOME', label:'首页', icon:HomeFilled },
+  { type:'PRODUCT_LIST', label:'商城页', icon:ShoppingBag },
+  { type:'PRODUCT_DETAIL', label:'产品详情页', icon:Picture },
+  { type:'CART', label:'购物车页', icon:ShoppingCartFull },
+  { type:'PAYMENT', label:'支付页', icon:CreditCard },
+  { type:'THANK_YOU', label:'感谢页', icon:CircleCheck },
 ]
 
-const activeTab = ref('HOME')
-const editingJson = ref('')
-const saving = ref(false)
-const loading = ref(false)
-const showRaw = ref(false)
-const currentConfigs = ref({})
-const currentSchema = ref({})
-const formData = reactive({})
-const uploadRefs = {}
-
-// Hero-specific
-const heroSlides = ref([])
-const heroInterval = computed({
-  get() { return parseInt(formData.hero_interval) || 5000 },
-  set(v) { formData.hero_interval = v }
-})
-const heroHeight = computed({
-  get() { return parseInt(formData.hero_height) || 500 },
-  set(v) { formData.hero_height = v }
+const pageList = computed(()=>pages)
+const filteredPages = computed(()=>{
+  let list=pageList.value
+  if(searchKeyword.value){const kw=searchKeyword.value.toLowerCase();list=list.filter(p=>p.label.toLowerCase().includes(kw)||pagePath(p.type).toLowerCase().includes(kw))}
+  return list
 })
 
-// Footer JSON fields
-const footerColumnsJson = ref('')
-const footerSocialJson = ref('')
-const footerPaymentJson = ref('')
+function pagePath(t){const m={HOME:'/',PRODUCT_LIST:'/shop',PRODUCT_DETAIL:'/product/:id',CART:'/cart',PAYMENT:'/payment',THANK_YOU:'/thank-you'};return m[t]||'/'}
+function pageIcon(t){const m={HOME:HomeFilled,PRODUCT_LIST:ShoppingBag,PRODUCT_DETAIL:Picture,CART:ShoppingCartFull,PAYMENT:CreditCard,THANK_YOU:CircleCheck};return m[t]||Files}
+function fieldCount(row){return row.type==='HOME'?12:row.type==='PRODUCT_LIST'?8:4}
 
-// Showcase categories & popular products
-const allCategoryOptions = ref([])
-const allProductOptions = ref([])
-const showcaseItems = ref([])
-const popularItems = ref([])
-const scUploadRefs = {}
-const scVideoUrls = reactive({})
+const kpis=ref([
+  {icon:Files,bg:'rgba(108,92,231,0.1)',color:'#6c5ce7',label:'总页面数',val:6,sub:'管理所有页面'},
+  {icon:CircleCheck,bg:'rgba(0,184,148,0.1)',color:'#00b894',label:'已发布',val:6,sub:'占比 100%'},
+  {icon:EditPen,bg:'rgba(253,203,110,0.12)',color:'#e67e22',label:'草稿',val:0,sub:'待发布'},
+  {icon:View,bg:'rgba(225,112,85,0.1)',color:'#e17055',label:'已下线',val:0,sub:'已停用'},
+  {icon:TrendCharts,bg:'rgba(116,185,255,0.1)',color:'#74b9ff',label:'总访问量',val:'12,580',sub:'累计PV'},
+])
 
-function showcasePreview(idx) {
-  const item = showcaseItems.value[idx]
-  if (!item) return null
-  if (item.coverImage) return item.coverImage
-  const vids = parseShowcaseVideos(item)
-  if (vids.length > 0) return vids[0]
-  // Default: use first product cover for the selected category
-  if (item.categoryId && item._firstProductCover) return item._firstProductCover
-  return null
+onMounted(()=>loadConfigs())
+
+async function loadConfigs(){loading.value=true;try{const r=await getPageConfigs();if(r.data){const m={};r.data.forEach(c=>{m[c.pageType]=c;try{const j=JSON.parse(c.configJson);m[c.pageType+'_json']=j}catch{}});savedConfigs.value=m}}catch{}finally{loading.value=false}}
+
+async function switchTab(t){activeTab.value=t;await loadSchema()}
+
+async function openEdit(type){
+  if(!type){ElMessage.info('新增页面功能开发中');return}
+  editType.value=type;dialogVisible.value=true;await loadSchema()
 }
 
-function parseShowcaseVideos(item) {
-  if (!item || !item.videos) return []
-  try { return typeof item.videos === 'string' ? JSON.parse(item.videos) : item.videos } catch { return [] }
+async function loadSchema(){
+  const page=pages.find(p=>p.type===editType.value);if(!page){currentSchema.value=null;return}
+  if(editType.value==='HOME'){currentSchema.value={hero_title:{label:'标题',type:'text'},hero_subtitle:{label:'副标题',type:'text'}};const saved=savedConfigs.value[editType.value+'_json']||{};formData.value={hero_enabled:saved.hero_enabled??true,showcase_enabled:saved.showcase_enabled??true,popular_enabled:saved.popular_enabled??true,...saved}}
+  else{currentSchema.value={}}
 }
 
-function showcaseVideoList(idx) {
-  const item = showcaseItems.value[idx]
-  return item ? parseShowcaseVideos(item) : []
+async function savePage(){
+  saving.value=true
+  try{
+    const current=savedConfigs.value[editType.value]||{}
+    const data={...formData.value};delete data.hero_enabled;delete data.showcase_enabled;delete data.popular_enabled
+    data.hero_enabled=formData.value.hero_enabled??true
+    data.showcase_enabled=formData.value.showcase_enabled??true
+    data.popular_enabled=formData.value.popular_enabled??true
+    await updatePageConfig(editType.value,data)
+    ElMessage.success('保存成功');dialogVisible.value=false;loadConfigs()
+  }catch{}finally{saving.value=false}
 }
-
-function addShowcaseVideo(idx) {
-  const url = scVideoUrls[idx]
-  if (!url) return
-  const item = showcaseItems.value[idx]
-  if (!item) return
-  const vids = parseShowcaseVideos(item)
-  if (!vids.includes(url)) {
-    vids.push(url)
-    item.videos = JSON.stringify(vids)
-    scVideoUrls[idx] = ''
-  }
-}
-
-function removeShowcaseVideo(idx, vi) {
-  const item = showcaseItems.value[idx]
-  if (!item) return
-  const vids = parseShowcaseVideos(item)
-  vids.splice(vi, 1)
-  item.videos = vids.length > 0 ? JSON.stringify(vids) : ''
-}
-
-function addShowcaseItem() {
-  const idx = showcaseItems.value.length
-  scVideoUrls[idx] = ''
-  showcaseItems.value.push({ categoryId: null, coverImage: '', videos: '' })
-}
-function removeShowcaseItem(idx) { showcaseItems.value.splice(idx, 1) }
-function moveShowcaseItem(idx, delta) {
-  const arr = showcaseItems.value
-  const t = idx + delta
-  if (t < 0 || t >= arr.length) return
-  const tmp = arr[idx]; arr[idx] = arr[t]; arr[t] = tmp
-  showcaseItems.value = [...arr]
-}
-function triggerShowcaseUpload(idx) { scUploadRefs[idx]?.click() }
-
-async function handleShowcaseUpload(e, idx) {
-  const file = e.target.files?.[0]
-  if (!file) return
-  try {
-    const res = await uploadFile(file)
-    if (res.data?.url) showcaseItems.value[idx].coverImage = res.data.url
-    ElMessage.success('上传成功')
-  } catch { ElMessage.error('上传失败') }
-  e.target.value = ''
-}
-
-async function onShowcaseCategoryChange(idx) {
-  const item = showcaseItems.value[idx]
-  if (!item || !item.categoryId) return
-  // Fetch first product of this category for default cover preview
-  try {
-    const { getProducts } = await import('../../api/product')
-    const res = await getProducts({ categoryId: item.categoryId, page: 1, size: 1 })
-    const list = res.data?.list || []
-    if (list.length > 0) {
-      item._firstProductCover = list[0].coverImage || null
-    }
-  } catch {}
-}
-
-function addPopularItem() {
-  popularItems.value.push({ productId: null })
-}
-function removePopularItem(idx) { popularItems.value.splice(idx, 1) }
-function movePopularItem(idx, delta) {
-  const arr = popularItems.value
-  const t = idx + delta
-  if (t < 0 || t >= arr.length) return
-  const tmp = arr[idx]; arr[idx] = arr[t]; arr[t] = tmp
-  popularItems.value = [...arr]
-}
-
-function isVideo(url) { return url && /\.mp4$/i.test(url) }
-function isGif(url) { return url && /\.gif$/i.test(url) }
-
-// Sync hero slides to formData
-watch(heroSlides, (val) => {
-  formData.hero_slides = val.map((s, i) => ({ ...s, sort: i + 1 }))
-}, { deep: true })
-
-// Sync footer JSON fields to formData
-watch(footerColumnsJson, (v) => { try { formData.footer_columns = JSON.parse(v) } catch {} })
-watch(footerSocialJson, (v) => { try { formData.footer_social = JSON.parse(v) } catch {} })
-watch(footerPaymentJson, (v) => { try { formData.footer_payment_icons = JSON.parse(v) } catch {} })
-
-// Sync showcase items to formData
-watch(showcaseItems, (val) => {
-  formData.showcase_categories = val.map((s, i) => ({
-    categoryId: s.categoryId,
-    coverImage: s.coverImage || '',
-    videos: s.videos || ''
-  }))
-}, { deep: true })
-
-// Sync popular items to formData
-watch(popularItems, (val) => {
-  formData.popular_products = val.map(p => ({ productId: p.productId }))
-}, { deep: true })
-
-function addSlide() {
-  heroSlides.value.push({ image: '', title: '', link: '', sort: heroSlides.value.length + 1 })
-}
-function removeSlide(idx) { heroSlides.value.splice(idx, 1) }
-function moveSlide(idx, delta) {
-  const arr = heroSlides.value
-  const t = idx + delta
-  if (t < 0 || t >= arr.length) return
-  const tmp = arr[idx]; arr[idx] = arr[t]; arr[t] = tmp
-  heroSlides.value = [...arr]
-}
-function triggerUpload(idx) { uploadRefs[idx]?.click() }
-
-async function handleUpload(e, idx) {
-  const file = e.target.files?.[0]
-  if (!file) return
-  try {
-    const res = await uploadFile(file)
-    if (res.data?.url) heroSlides.value[idx].image = res.data.url
-    ElMessage.success('上传成功')
-  } catch { ElMessage.error('上传失败') }
-  e.target.value = ''
-}
-
-onMounted(async () => {
-  try {
-    const res = await getPageConfigs()
-    if (res.data) {
-      Object.entries(res.data).forEach(([type, pc]) => {
-        currentConfigs.value[type] = pc?.configJson || defaults[type]
-      })
-    }
-  } catch {}
-  // Load options for showcase categories and popular products selectors
-  try {
-    const catRes = await getAdminCategories()
-    const flat = []
-    function walk(items) { items.forEach(i => { flat.push(i); if (i.children) walk(i.children) }) }
-    walk(catRes.data || [])
-    allCategoryOptions.value = flat
-  } catch {}
-  try {
-    const prodRes = await getAdminProducts({ page: 1, size: 200 })
-    allProductOptions.value = prodRes.data?.list || []
-  } catch {}
-  initTab('HOME')
-})
-
-function initTab(type) {
-  // POPULAR reads/writes HOME config
-  const configType = type === 'POPULAR' ? 'HOME' : type
-  const json = currentConfigs.value[configType] || defaults[configType]
-  editingJson.value = json
-  try {
-    const parsed = JSON.parse(json)
-    Object.keys(formData).forEach(k => delete formData[k])
-    Object.assign(formData, parsed)
-    // Init hero slides for HOME
-    if (type === 'HOME') {
-      heroSlides.value = Array.isArray(formData.hero_slides) ? [...formData.hero_slides] : []
-    }
-    // Init showcase & popular items for HOME and POPULAR
-    if (type === 'HOME' || type === 'POPULAR') {
-      const raw = formData.showcase_categories
-      if (Array.isArray(raw)) {
-        showcaseItems.value = raw.map((item, i) => {
-          scVideoUrls[i] = ''
-          if (typeof item === 'object' && item !== null) {
-            return { categoryId: item.categoryId || null, coverImage: item.coverImage || '', videos: item.videos || '' }
-          }
-          return { categoryId: item, coverImage: '', videos: '' }
-        })
-      } else { showcaseItems.value = [] }
-      const rawPop = formData.popular_products
-      if (Array.isArray(rawPop)) {
-        popularItems.value = rawPop.map(item => {
-          if (typeof item === 'object' && item !== null) return { productId: item.productId || null }
-          return { productId: item }
-        })
-      } else { popularItems.value = [] }
-    }
-    // Init footer JSON editors
-    if (type === 'FOOTER') {
-      footerColumnsJson.value = JSON.stringify(formData.footer_columns || [], null, 2)
-      footerSocialJson.value = JSON.stringify(formData.footer_social || [], null, 2)
-      footerPaymentJson.value = JSON.stringify(formData.footer_payment_icons || [], null, 2)
-    }
-  } catch {}
-
-  // POPULAR does not have a schema — just hide schema form
-  if (type === 'POPULAR') {
-    currentSchema.value = {}
-    return
-  }
-
-  getPageConfigSchema(type).then(res => {
-    currentSchema.value = res.data || {}
-    Object.entries(currentSchema.value).forEach(([key, field]) => {
-      if (formData[key] === undefined) formData[key] = field.default
-    })
-  }).catch(() => { currentSchema.value = {}; showRaw.value = true })
-}
-
-// Track actual config type for POPULAR tab (saves to HOME)
-function effectiveConfigType() {
-  return activeTab.value === 'POPULAR' ? 'HOME' : activeTab.value
-}
-
-function switchTab(type) {
-  showRaw.value = false
-  initTab(type)
-}
-
-function toggleRaw() {
-  if (!showRaw.value) {
-    editingJson.value = JSON.stringify(formData, null, 2)
-  } else {
-    try {
-      const parsed = JSON.parse(editingJson.value)
-      Object.keys(formData).forEach(k => delete formData[k])
-      Object.assign(formData, parsed)
-    } catch { ElMessage.warning('JSON格式不合法') }
-  }
-  showRaw.value = !showRaw.value
-}
-
-function resetPage() {
-  editingJson.value = defaults[effectiveConfigType()]
-}
-
-async function savePage() {
-  saving.value = true
-  try {
-    const json = showRaw.value ? editingJson.value : JSON.stringify(formData)
-    const saveType = effectiveConfigType()
-    await updatePageConfig(saveType, { configJson: json })
-    currentConfigs.value[saveType] = json
-    ElMessage.success('保存成功')
-  } catch {} finally { saving.value = false }
-}
-
-watch(formData, () => {
-  if (!showRaw.value) editingJson.value = JSON.stringify(formData, null, 2)
-}, { deep: true })
 </script>
 
 <style scoped>
-.schema-form {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px 20px;
-}
-.editor-header {
-  display: flex; justify-content: space-between; align-items: center;
-}
+.pg-page{max-width:100%}
+.page-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px}
+.page-header h2{font-size:20px;font-weight:600;margin:0}
+.page-subtitle{font-size:12px;color:#909399;margin-top:3px}
+.page-header-actions{display:flex;gap:8px}
+.btn{padding:8px 16px;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;display:inline-flex;align-items:center;gap:6px;transition:all .2s;font-family:inherit}
+.btn-primary{background:#6c5ce7;color:#fff}.btn-primary:hover{background:#5b4cdb}
+.btn-outline{background:transparent;border:1px solid #e0e3e8;color:#606266}.btn-outline:hover{border-color:#6c5ce7;color:#6c5ce7}
+.card{background:#fff;border-radius:12px;border:1px solid #e0e3e8;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.card-body{padding:20px}
 
-.hero-slides-editor, .items-editor { max-width: 900px; }
-.slide-card {
-  background: #fafafa; border: 1px solid #ebeef5; border-radius: 8px;
-  padding: 16px; margin-bottom: 12px;
-}
-.slide-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-.slide-label { font-weight: 600; color: #333; }
-.slide-actions { display: flex; gap: 6px; }
-.slide-preview {
-  width: 100%; height: 120px; background: #f0f2f5; border-radius: 6px;
-  overflow: hidden; position: relative; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  border: 2px dashed #d9d9d9; transition: border-color 0.2s;
-}
-.slide-preview:hover { border-color: #409EFF; }
-.slide-preview-media { width: 100%; height: 100%; object-fit: cover; }
-.slide-preview-empty { text-align: center; color: #bbb; }
-.slide-preview-empty span { display: block; font-size: 12px; margin-top: 4px; }
-.slide-preview-type { position: absolute; top: 4px; right: 4px; }
+/* KPI */
+.om-kpi-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:16px}
+.om-kpi-card{background:#fff;border-radius:12px;padding:16px 18px;border:1px solid #e0e3e8;box-shadow:0 1px 4px rgba(0,0,0,.04);display:flex;align-items:center;gap:14px;transition:all .2s}
+.om-kpi-card:hover{box-shadow:0 2px 12px rgba(0,0,0,.06);transform:translateY(-1px)}
+.om-kpi-icon{width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.om-kpi-body{flex:1;min-width:0}
+.om-kpi-val{font-size:20px;font-weight:700;line-height:1.2}
+.om-kpi-label{font-size:12px;color:#909399}
+.om-kpi-sub{font-size:11px;color:#909399;margin-top:2px}
 
-@media (max-width: 768px) {
-  .schema-form { grid-template-columns: 1fr; }
-}
+/* Toolbar */
+.pm-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.pm-tab-group{display:flex;gap:2px;border-bottom:2px solid #e0e3e8;flex:1}
+.pm-tab{padding:7px 14px;font-size:13px;font-weight:500;border:none;background:transparent;cursor:pointer;color:#909399;border-bottom:2px solid transparent;margin-bottom:-2px;border-radius:6px 6px 0 0;white-space:nowrap;font-family:inherit;transition:all .2s;display:flex;align-items:center;gap:3px}
+.pm-tab:hover{color:#606266;background:#f5f7fa}
+.pm-tab.active{color:#6c5ce7;border-bottom-color:#6c5ce7;background:rgba(108,92,231,.08)}
+.pm-tab-count{background:#f5f7fa;color:#909399;font-size:10px;padding:1px 6px;border-radius:8px;margin-left:4px;font-weight:600}
+.pm-tab.active .pm-tab-count{background:rgba(108,92,231,.15);color:#6c5ce7}
+.tab-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.pm-toolbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.pm-search-wrap{position:relative;display:flex;align-items:center}
+.pm-search-wrap :deep(.el-icon){position:absolute;left:10px;color:#909399;font-size:12px;z-index:1}
+.pm-search-wrap input{padding:7px 10px 7px 30px;border:1px solid #e0e3e8;border-radius:20px;font-size:12px;outline:none;width:200px;background:#f5f7fa;font-family:inherit;transition:all .2s}
+.pm-search-wrap input:focus{border-color:#6c5ce7;background:#fff;box-shadow:0 0 0 3px rgba(108,92,231,.08)}
+
+/* Status badges */
+.order-status-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500;white-space:nowrap}
+.os-done{background:rgba(0,184,148,.1);color:#00b894}
+
+/* Actions */
+.om-actions{display:flex;gap:4px;justify-content:center}
+.om-action-btn{width:28px;height:28px;padding:0;border-radius:6px;background:transparent;border:1px solid #e0e3e8;color:#909399;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center}
+.om-action-btn:hover{border-color:#6c5ce7;color:#6c5ce7;background:rgba(108,92,231,.08)}
+
+@media(max-width:1200px){.om-kpi-strip{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:768px){.om-kpi-strip{grid-template-columns:repeat(2,1fr)}.pm-toolbar{flex-direction:column;align-items:stretch}}
 </style>

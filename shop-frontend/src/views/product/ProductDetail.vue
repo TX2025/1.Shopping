@@ -40,6 +40,16 @@
             <span class="price-old" v-if="product.originalPrice && product.originalPrice > product.price">¥{{ product.originalPrice }}</span>
             <span class="discount-badge" v-if="discountPercent">-{{ discountPercent }}% OFF</span>
           </div>
+          <div class="detail-meta">
+            <span v-if="product.sku" class="meta-sku">SKU: {{ product.sku }}</span>
+            <span v-if="product.brand" class="meta-brand">{{ product.brand }}</span>
+          </div>
+          <div v-if="product.rating" class="detail-rating">
+            <span class="stars">{{ '★'.repeat(Math.floor(product.rating)) }}{{ product.rating%1>=0.5?'½':'' }}{{ '☆'.repeat(5-Math.ceil(product.rating)) }}</span>
+            <span class="rating-val">{{ product.rating }}</span>
+            <span class="rating-count">({{ product.reviews||0 }} 条评价)</span>
+          </div>
+          <span v-if="product.tag" class="detail-tag" :class="'tag-'+product.tag">{{ {hot:'🔥热销',new:'🆕新品',sale:'💰促销',recommend:'👍推荐'}[product.tag]||product.tag }}</span>
           <p v-if="pc.showSalesCount !== false" class="sales">已售 {{ product.sales }} 件</p>
           <p class="stock">
             <el-icon :size="14"><CircleCheckFilled /></el-icon>
@@ -56,6 +66,7 @@
               加入购物车
             </el-button>
             <el-button type="danger" size="large" class="buy-now-btn" @click="buyNow">立即购买</el-button>
+            <el-button size="large" class="inquiry-btn" @click="showInquiry=true"><el-icon :size="16"><ChatDotRound /></el-icon> 咨询</el-button>
           </div>
           <div class="share" v-if="pc.showShareButtons !== false">
             <span>分享：</span>
@@ -85,6 +96,17 @@
       </div>
     </div>
     <div v-else class="container" style="text-align:center;padding:100px"><h2>商品加载中...</h2></div>
+
+    <!-- Inquiry Dialog -->
+    <el-dialog v-model="showInquiry" title="产品咨询" width="460px">
+      <el-form :model="inquiryForm" label-width="80px" label-position="top">
+        <el-form-item label="感兴趣的型号">{{ product?.name }}</el-form-item>
+        <el-form-item label="联系人"><el-input v-model="inquiryForm.customer" placeholder="您的姓名" /></el-form-item>
+        <el-form-item label="联系方式"><el-input v-model="inquiryForm.contact" placeholder="手机号或邮箱" /></el-form-item>
+        <el-form-item label="咨询内容"><el-input v-model="inquiryForm.summary" type="textarea" :rows="3" placeholder="请输入您想咨询的内容..." /></el-form-item>
+      </el-form>
+      <template #footer><el-button @click="showInquiry=false">取消</el-button><el-button type="primary" @click="submitInquiry" :loading="inqSaving">提交咨询</el-button></template>
+    </el-dialog>
   </div>
 </template>
 
@@ -96,7 +118,8 @@ import { usePageConfig } from '../../composables/usePageConfig'
 import { useCartStore } from '../../stores/cart'
 import { useAuthStore } from '../../stores/auth'
 import { ElMessage } from 'element-plus'
-import { Share, Link, ShoppingCart, CircleCheckFilled, VideoCameraFilled } from '@element-plus/icons-vue'
+import { Share, Link, ShoppingCart, ChatDotRound, CircleCheckFilled, VideoCameraFilled } from '@element-plus/icons-vue'
+import request from '../../utils/request'
 
 const route = useRoute()
 const router = useRouter()
@@ -109,6 +132,15 @@ const quantity = ref(1)
 const relatedProducts = ref([])
 const relatedHoverId = ref(null)
 const currentIndex = ref(0)
+const showInquiry = ref(false)
+const inquiryForm = ref({customer:'',contact:'',summary:''})
+const inqSaving = ref(false)
+
+async function submitInquiry(){
+  if(!inquiryForm.value.summary.trim()){ElMessage.warning('请输入咨询内容');return}
+  inqSaving.value=true
+  try{await request.post('/api/inquiries',{...inquiryForm.value,interest:product.value?.name,source:'官网'});ElMessage.success('咨询已提交');showInquiry.value=false;inquiryForm.value={customer:'',contact:'',summary:''}}catch{}finally{inqSaving.value=false}
+}
 let autoTimer = null
 let autoPaused = false
 
@@ -411,6 +443,18 @@ function copyLink() {
   padding: 3px 10px;
   border-radius: 4px;
 }
+.detail-meta { display:flex; gap:10px; margin-bottom:8px; align-items:center }
+.meta-sku { color:#909399; font-size:13px; background:#f5f7fa; padding:2px 8px; border-radius:4px }
+.meta-brand { color:#6c5ce7; font-size:12px; font-weight:600; background:rgba(108,92,231,.08); padding:2px 8px; border-radius:4px }
+.detail-rating { display:flex; align-items:center; gap:6px; margin-bottom:8px }
+.detail-rating .stars { color:#fdcb6e; font-size:15px; letter-spacing:2px }
+.detail-rating .rating-val { font-weight:700; color:#e67e22; font-size:14px }
+.detail-rating .rating-count { color:#909399; font-size:12px }
+.detail-tag { display:inline-block; padding:2px 10px; border-radius:12px; font-size:11px; font-weight:700; margin-bottom:8px }
+.tag-hot { background:rgba(225,112,85,.12); color:#c0392b }
+.tag-new { background:rgba(116,185,255,.15); color:#2980b9 }
+.tag-sale { background:rgba(253,203,110,.2); color:#d68910 }
+.tag-recommend { background:rgba(0,184,148,.12); color:#00796b }
 .sales { color: #888; margin-bottom: 8px; font-size: 14px; }
 .stock {
   color: #4caf50;

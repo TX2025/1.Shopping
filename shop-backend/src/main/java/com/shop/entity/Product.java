@@ -47,6 +47,17 @@ public class Product {
     @Column(columnDefinition = "TEXT")
     private String videos;
 
+    @Column(length = 50)
+    private String brand;
+
+    @Column(length = 20)
+    private String tag;             // hot/new/sale/recommend
+
+    private Double rating;
+
+    @Builder.Default
+    private Integer reviews = 0;
+
     @Column(length = 20)
     @Builder.Default
     private String status = Constants.PRODUCT_STATUS_ON;

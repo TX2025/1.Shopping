@@ -42,6 +42,12 @@ public class Order {
     @Column(length = 500)
     private String remark;
 
+    @Column(length = 50)
+    private String channel;             // 渠道: 微信小程序/APP/PC官网/H5
+
+    @Column(name = "payment_method", length = 50)
+    private String paymentMethod;       // 支付方式: 微信支付/支付宝/银行卡
+
     @Column(name = "pay_time")
     private LocalDateTime payTime;
 

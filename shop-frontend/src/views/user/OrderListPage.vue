@@ -14,17 +14,24 @@
         <el-table-column prop="order.totalAmount" label="金额" width="100">
           <template #default="{row}">¥{{ row.order.totalAmount }}</template>
         </el-table-column>
-        <el-table-column label="状态" width="100">
+        <el-table-column label="渠道" width="90">
+          <template #default="{row}"><span style="font-size:12px;color:#909399">{{ row.order.channel||'-' }}</span></template>
+        </el-table-column>
+        <el-table-column label="支付方式" width="100">
+          <template #default="{row}"><span style="font-size:12px">{{ payLabel(row.order.paymentMethod) }}</span></template>
+        </el-table-column>
+        <el-table-column label="状态" width="90">
           <template #default="{row}">
             <el-tag :type="statusType(row.order.status)">{{ statusText(row.order.status) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="时间" width="160">
+        <el-table-column label="时间" width="150">
           <template #default="{row}">{{ row.order.createTime }}</template>
         </el-table-column>
         <el-table-column label="操作" width="140">
           <template #default="{row}">
             <el-button size="small" @click="$router.push(`/user/orders/${row.order.id}`)">详情</el-button>
+            <el-button size="small" type="warning" @click="$router.push('/user/aftersale')">售后</el-button>
             <el-button v-if="row.order.status === 'PENDING'" size="small" type="danger" @click="handleCancel(row.order.id)">取消</el-button>
           </template>
         </el-table-column>
@@ -70,6 +77,7 @@ function statusText(s) {
   const map = { PENDING: '待支付', PAID: '已支付', SHIPPED: '已发货', CANCELLED: '已取消' }
   return map[s] || s
 }
+function payLabel(p){const m={wechat:'微信支付',alipay:'支付宝',card:'银行卡'};return m[p]||p||'-'}
 function statusType(s) {
   const map = { PENDING: 'warning', PAID: 'success', SHIPPED: 'primary', CANCELLED: 'info' }
   return map[s] || 'info'

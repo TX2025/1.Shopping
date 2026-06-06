@@ -2,23 +2,6 @@
   <div class="home-page">
     <HeroBanner v-if="pc.hero_enabled !== false" />
 
-    <div class="container" v-if="pc.showcase_enabled !== false && showcaseCats.length">
-      <h2 class="section-title">{{ pc.showcase_title || '热门分类' }}</h2>
-      <div class="showcase-grid">
-        <div class="showcase-card" v-for="cat in showcaseCats" :key="cat.id"
-          @click="$router.push(`/products?categoryId=${cat.id}`)"
-          @mouseenter="showcaseHoverId = cat.id" @mouseleave="showcaseHoverId = null">
-          <div class="showcase-media">
-            <video v-if="catFirstVideo(cat)" :src="catFirstVideo(cat)" muted loop playsinline
-              :class="{ 'showcase-video-playing': showcaseHoverId === cat.id }" />
-            <img v-else-if="cat.coverImage" :src="cat.coverImage" :alt="cat.name" />
-            <el-icon v-else :size="36"><FolderOpened /></el-icon>
-          </div>
-          <span>{{ cat.name }}</span>
-        </div>
-      </div>
-    </div>
-
     <div class="container" v-if="pc.popular_enabled !== false">
       <h2 class="section-title">{{ popularTitle }}</h2>
       <div class="product-grid">
@@ -37,6 +20,8 @@
           <div class="product-info">
             <span class="product-category" v-if="getCategoryName(p.categoryId)">{{ getCategoryName(p.categoryId) }}</span>
             <h4>{{ p.name }}</h4>
+            <div v-if="p.rating" class="hp-rating"><span class="hp-stars">{{ '★'.repeat(Math.floor(p.rating)) }}</span><span class="hp-rv">{{ p.rating }}</span></div>
+            <span v-if="p.tag" class="hp-tag" :class="'tag-'+p.tag">{{ {hot:'🔥热销',new:'🆕新品',sale:'💰促销',recommend:'👍推荐'}[p.tag] }}</span>
             <div class="product-price">
               <span class="price-label">Starting at</span>
               <span class="price-now">¥{{ p.price }}</span>
@@ -60,7 +45,7 @@ import { ref, onMounted, computed } from 'vue'
 import { getProducts, getCategories } from '../../api/product'
 import { usePageConfig } from '../../composables/usePageConfig'
 import { useSiteConfig } from '../../composables/useSiteConfig'
-import { FolderOpened, Loading, VideoCameraFilled } from '@element-plus/icons-vue'
+import { Loading, VideoCameraFilled } from '@element-plus/icons-vue'
 import HeroBanner from '../../components/HeroBanner.vue'
 import TrustSection from '../../components/TrustSection.vue'
 
@@ -68,10 +53,8 @@ const { config: pc } = usePageConfig('HOME')
 const { config } = useSiteConfig()
 
 const popularProducts = ref([])
-const showcaseCats = ref([])
 const popularLoading = ref(true)
 const hoveredId = ref(null)
-const showcaseHoverId = ref(null)
 const allCategories = ref([])
 const categoryMap = ref({})
 
@@ -117,18 +100,8 @@ function getCategoryName(catId) {
   return categoryMap.value[catId] || ''
 }
 
-function catParseVideos(cat) {
-  if (!cat.videos) return []
-  try { return typeof cat.videos === 'string' ? JSON.parse(cat.videos) : cat.videos } catch { return [] }
-}
-
-function catFirstVideo(cat) {
-  const v = catParseVideos(cat)
-  return v.length > 0 ? v[0] : null
-}
-
 onMounted(async () => {
-  // Load categories for name mapping + showcase
+  // Load categories for name mapping
   try {
     const res = await getCategories()
     const flat = []
@@ -137,24 +110,6 @@ onMounted(async () => {
     }
     walk(res.data || [])
     allCategories.value = flat
-
-    // Showcase: use admin-selected entries if configured, otherwise first 4
-    const rawShowcase = pc.value.showcase_categories
-    if (Array.isArray(rawShowcase) && rawShowcase.length > 0) {
-      showcaseCats.value = rawShowcase.map(item => {
-        const catId = typeof item === 'object' ? item.categoryId : item
-        const cat = flat.find(c => c.id === catId)
-        if (!cat) return null
-        // Merge per-entry cover/video overrides onto the category object
-        return {
-          ...cat,
-          coverImage: (typeof item === 'object' && item.coverImage) || cat.coverImage,
-          videos: (typeof item === 'object' && item.videos) || cat.videos
-        }
-      }).filter(Boolean)
-    } else {
-      showcaseCats.value = flat.filter(c => !c.parentId).slice(0, 4)
-    }
   } catch {}
 
   // Load popular products: admin-selected or auto by sales
@@ -198,49 +153,6 @@ onMounted(async () => {
   background: #00676b;
   margin: 12px auto 0;
   border-radius: 2px;
-}
-
-.showcase-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-}
-.showcase-card {
-  background: #f8f9fa;
-  border-radius: 8px;
-  padding: 30px 16px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.3s;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  font-size: 16px;
-  color: #333;
-}
-.showcase-card:hover {
-  background: #e8f4f5;
-  color: #00676b;
-  transform: translateY(-2px);
-}
-.showcase-media {
-  width: 80px; height: 80px; border-radius: 8px; overflow: hidden;
-  background: #f0f2f5; display: flex; align-items: center; justify-content: center;
-  color: #00676b; transition: transform 0.3s;
-}
-.showcase-media img,
-.showcase-media video {
-  width: 100%; height: 100%; object-fit: cover;
-}
-.showcase-media video {
-  opacity: 0.5; transition: opacity 0.3s;
-}
-.showcase-video-playing {
-  opacity: 1 !important;
-}
-.showcase-card:hover .showcase-media {
-  transform: scale(1.05);
 }
 
 .product-grid {
@@ -322,6 +234,14 @@ onMounted(async () => {
 .product-info {
   padding: 16px;
 }
+.hp-rating { display:flex; align-items:center; gap:4px; margin:2px 0 }
+.hp-stars { color:#fdcb6e; font-size:13px; letter-spacing:1px }
+.hp-rv { font-weight:700; color:#e67e22; font-size:12px }
+.hp-tag { display:inline-block; padding:1px 6px; border-radius:8px; font-size:10px; font-weight:700; margin:2px 0 }
+.tag-hot { background:rgba(225,112,85,.12); color:#c0392b }
+.tag-new { background:rgba(116,185,255,.15); color:#2980b9 }
+.tag-sale { background:rgba(253,203,110,.2); color:#d68910 }
+.tag-recommend { background:rgba(0,184,148,.12); color:#00796b }
 .product-category {
   font-size: 11px;
   color: #00676b;
@@ -381,11 +301,9 @@ onMounted(async () => {
 
 @media (max-width: 1024px) {
   .product-grid { grid-template-columns: repeat(3, 1fr); }
-  .showcase-grid { grid-template-columns: repeat(3, 1fr); }
 }
 @media (max-width: 768px) {
   .product-grid { grid-template-columns: repeat(2, 1fr); }
-  .showcase-grid { grid-template-columns: repeat(2, 1fr); }
   .product-image { height: 180px; }
 }
 </style>

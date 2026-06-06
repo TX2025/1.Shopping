@@ -26,6 +26,7 @@ public class DataInitializer implements CommandLineRunner {
     private final ShippingMethodRepository shippingMethodRepository;
     private final AfterSaleRepository afterSaleRepository;
     private final InquiryRepository inquiryRepository;
+    private final PromotionRepository promotionRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
@@ -39,6 +40,7 @@ public class DataInitializer implements CommandLineRunner {
         initShippingMethods();
         initAfterSales();
         initInquiries();
+        initPromotions();
     }
 
     private void initAdmin() {
@@ -92,26 +94,26 @@ public class DataInitializer implements CommandLineRunner {
     private void initProducts() {
         if (productRepository.count() == 0) {
             String[][] items = {
-                {"iPhone 15", "PH-IP15-001", "最新款苹果智能手机，A16芯片", "5999.00", "6999.00", "100", "手机", "https://picsum.photos/seed/iphone15/400/400"},
-                {"MacBook Pro 14", "CP-MBP14-001", "M3芯片，14英寸Liquid Retina显示屏", "12999.00", "14999.00", "50", "电脑", "https://picsum.photos/seed/macbook14/400/400"},
-                {"AirPods Pro 2", "AU-AP2-001", "主动降噪无线耳机，H2芯片", "1799.00", "1999.00", "200", "耳机", "https://picsum.photos/seed/airpods2/400/400"},
-                {"男士休闲夹克", "MC-JKT-001", "春秋季新款，纯棉面料", "299.00", "499.00", "150", "男装", "https://picsum.photos/seed/jacket/400/400"},
-                {"女士连衣裙", "WC-DRS-001", "夏季新款，碎花设计", "259.00", "399.00", "200", "女装", "https://picsum.photos/seed/dress/400/400"},
-                {"实木餐桌", "HM-TBL-001", "北欧风格，白橡木材质", "2999.00", "3999.00", "30", "家具", "https://picsum.photos/seed/table/400/400"},
-                {"不粘锅套装", "HM-CKW-001", "3件套，适用于所有灶具", "399.00", "599.00", "100", "厨具", "https://picsum.photos/seed/cookware/400/400"},
-                {"iPad Air", "CP-IPA-001", "M2芯片，10.9英寸显示屏", "4799.00", "5499.00", "80", "电脑", "https://picsum.photos/seed/ipadair/400/400"},
-                {"Sony WH-1000XM5", "AU-SNY-001", "头戴式降噪耳机", "2499.00", "2999.00", "60", "耳机", "https://picsum.photos/seed/sonyxm5/400/400"},
-                {"Huawei P60", "PH-HWP-001", "华为旗舰手机，XMAGE影像", "4988.00", "5288.00", "120", "手机", "https://picsum.photos/seed/huawei60/400/400"},
+                {"iPhone 15", "PH-IP15-001", "Apple", "最新款苹果智能手机，A16芯片", "5999.00", "6999.00", "100", "手机", "https://picsum.photos/seed/iphone15/400/400", "hot", "4.6"},
+                {"MacBook Pro 14", "CP-MBP14-001", "Apple", "M3芯片，14英寸Liquid Retina显示屏", "12999.00", "14999.00", "50", "电脑", "https://picsum.photos/seed/macbook14/400/400", "recommend", "4.8"},
+                {"AirPods Pro 2", "AU-AP2-001", "Apple", "主动降噪无线耳机，H2芯片", "1799.00", "1999.00", "200", "耳机", "https://picsum.photos/seed/airpods2/400/400", "hot", "4.7"},
+                {"男士休闲夹克", "MC-JKT-001", "Zara", "春秋季新款，纯棉面料", "299.00", "499.00", "150", "男装", "https://picsum.photos/seed/jacket/400/400", "sale", "4.2"},
+                {"女士连衣裙", "WC-DRS-001", "H&M", "夏季新款，碎花设计", "259.00", "399.00", "200", "女装", "https://picsum.photos/seed/dress/400/400", "new", "4.3"},
+                {"实木餐桌", "HM-TBL-001", "IKEA", "北欧风格，白橡木材质", "2999.00", "3999.00", "30", "家具", "https://picsum.photos/seed/table/400/400", "recommend", "4.5"},
+                {"不粘锅套装", "HM-CKW-001", "Supor", "3件套，适用于所有灶具", "399.00", "599.00", "100", "厨具", "https://picsum.photos/seed/cookware/400/400", "", "4.1"},
+                {"iPad Air", "CP-IPA-001", "Apple", "M2芯片，10.9英寸显示屏", "4799.00", "5499.00", "80", "电脑", "https://picsum.photos/seed/ipadair/400/400", "new", "4.9"},
+                {"Sony WH-1000XM5", "AU-SNY-001", "Sony", "头戴式降噪耳机", "2499.00", "2999.00", "60", "耳机", "https://picsum.photos/seed/sonyxm5/400/400", "recommend", "4.7"},
+                {"Huawei P60", "PH-HWP-001", "Huawei", "华为旗舰手机，XMAGE影像", "4988.00", "5288.00", "120", "手机", "https://picsum.photos/seed/huawei60/400/400", "sale", "4.4"},
             };
             for (String[] item : items) {
                 Long catId = categoryRepository.findAllByOrderBySortOrder().stream()
-                        .filter(c -> c.getName().equals(item[6]))
+                        .filter(c -> c.getName().equals(item[7]))
                         .findFirst().map(Category::getId).orElse(null);
                 productRepository.save(Product.builder()
-                        .name(item[0]).sku(item[1]).description(item[2])
-                        .price(new BigDecimal(item[3])).originalPrice(new BigDecimal(item[4]))
-                        .stock(Integer.parseInt(item[5])).categoryId(catId)
-                        .coverImage(item[7])
+                        .name(item[0]).sku(item[1]).brand(item[2]).description(item[3])
+                        .price(new BigDecimal(item[4])).originalPrice(new BigDecimal(item[5]))
+                        .stock(Integer.parseInt(item[6])).categoryId(catId)
+                        .coverImage(item[8]).tag(item[9]).rating(Double.parseDouble(item[10]))
                         .status(Constants.PRODUCT_STATUS_ON)
                         .sales((int)(Math.random() * 500))
                         .build());
@@ -242,6 +244,21 @@ public class DataInitializer implements CommandLineRunner {
                     .interest("机械键盘 87键").summary("能否定制键帽配色？最小起订量多少？")
                     .status("REPLIED").build());
             log.info("Inquiries initialized");
+        }
+    }
+
+    private void initPromotions() {
+        if (promotionRepository.count() == 0) {
+            java.time.LocalDate now = java.time.LocalDate.now();
+            promotionRepository.save(Promotion.builder().name("新年特惠").type("满减").discount("满200减30")
+                    .usageCount(1256).startDate(now.minusDays(10)).endDate(now.plusDays(20)).status("active").build());
+            promotionRepository.save(Promotion.builder().name("新用户专享").type("折扣").discount("首单8折")
+                    .usageCount(2100).startDate(now.minusDays(30)).endDate(now.plusDays(60)).status("active").build());
+            promotionRepository.save(Promotion.builder().name("双12大促").type("满减").discount("满500减80")
+                    .usageCount(3421).startDate(now.minusDays(60)).endDate(now.minusDays(40)).status("ended").build());
+            promotionRepository.save(Promotion.builder().name("秒杀专场").type("秒杀").discount("限量5折起")
+                    .startDate(now.plusDays(5)).endDate(now.plusDays(7)).status("upcoming").build());
+            log.info("Promotions initialized");
         }
     }
 }

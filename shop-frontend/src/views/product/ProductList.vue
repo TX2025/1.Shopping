@@ -42,6 +42,8 @@
                 <span class="price-now">¥{{ p.price }}</span>
                 <span class="price-old" v-if="pc.showOriginalPrice !== false && p.originalPrice && p.originalPrice > p.price">¥{{ p.originalPrice }}</span>
               </div>
+              <div v-if="p.rating" class="card-rating"><span class="card-stars">{{ '★'.repeat(Math.floor(p.rating)) }}</span><span class="card-rv">{{ p.rating }}</span></div>
+              <span v-if="p.tag" class="card-tag" :class="'tag-'+p.tag">{{ {hot:'🔥热销',new:'🆕新品',sale:'💰促销',recommend:'👍推荐'}[p.tag] }}</span>
               <p class="sales" v-if="pc.showSalesCount !== false">已售 {{ p.sales }} 件</p>
             </div>
           </div>
@@ -62,6 +64,8 @@
                 <span class="price-now">¥{{ p.price }}</span>
                 <span class="price-old" v-if="pc.showOriginalPrice !== false && p.originalPrice && p.originalPrice > p.price">¥{{ p.originalPrice }}</span>
               </div>
+              <div v-if="p.rating" class="card-rating"><span class="card-stars">{{ '★'.repeat(Math.floor(p.rating)) }}</span><span class="card-rv">{{ p.rating }}</span><span style="color:#909399;font-size:11px">({{ p.reviews||0 }})</span></div>
+              <span v-if="p.tag" class="card-tag" :class="'tag-'+p.tag">{{ {hot:'🔥热销',new:'🆕新品',sale:'💰促销',recommend:'👍推荐'}[p.tag] }}</span>
               <p class="sales" v-if="pc.showSalesCount !== false">已售 {{ p.sales }} 件</p>
             </div>
           </div>
@@ -273,6 +277,14 @@ async function loadProducts() {
 }
 .price-now { color: #e74c3c; font-size: 18px; font-weight: bold; }
 .price-old { color: #bbb; font-size: 12px; text-decoration: line-through; }
+.card-rating { display:flex; align-items:center; gap:4px; margin:4px 0 2px }
+.card-stars { color:#fdcb6e; font-size:13px; letter-spacing:1px }
+.card-rv { font-weight:700; color:#e67e22; font-size:12px }
+.card-tag { display:inline-block; padding:1px 6px; border-radius:8px; font-size:10px; font-weight:700; margin:2px 0 }
+.tag-hot { background:rgba(225,112,85,.12); color:#c0392b }
+.tag-new { background:rgba(116,185,255,.15); color:#2980b9 }
+.tag-sale { background:rgba(253,203,110,.2); color:#d68910 }
+.tag-recommend { background:rgba(0,184,148,.12); color:#00796b }
 .sales { font-size: 12px; color: #999; margin: 4px 0 0; }
 
 .list-item { display: flex; gap: 20px; padding: 16px; margin-bottom: 12px; background: #fff; border-radius: 8px; cursor: pointer; box-shadow: 0 1px 6px rgba(0,0,0,0.05); transition: box-shadow 0.3s; }

@@ -15,6 +15,7 @@ const routes = [
       { path: 'register', name: 'Register', component: () => import('../views/user/RegisterPage.vue') },
       { path: 'user/profile', name: 'Profile', component: () => import('../views/user/ProfilePage.vue'), meta: { auth: true } },
       { path: 'user/orders', name: 'UserOrders', component: () => import('../views/user/OrderListPage.vue'), meta: { auth: true } },
+      { path: 'user/aftersale', name: 'AfterSale', component: () => import('../views/user/AfterSalePage.vue'), meta: { auth: true } },
     ],
   },
   {
